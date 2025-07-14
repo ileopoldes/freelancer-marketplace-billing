@@ -1,10 +1,10 @@
 import { FastifyInstance } from 'fastify';
 import { PrismaClient } from '@prisma/client';
-import { BillingEngine } from '../services/billing/BillingEngine';
+import { MarketplaceBillingEngine } from '../services/billing/MarketplaceBillingEngine';
 
 export async function billingRoutes(server: FastifyInstance, options: { prisma: PrismaClient }) {
   const { prisma } = options;
-  const billingEngine = new BillingEngine(prisma);
+  const billingEngine = new MarketplaceBillingEngine(prisma);
 
   // Run billing job
   server.post('/api/billing/run', async (request, reply) => {

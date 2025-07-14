@@ -90,7 +90,7 @@ export class PayAsYouGoPricer {
     
     // Calculate cost for each event type
     for (const [eventType, quantity] of Object.entries(eventGroups)) {
-      const calculation = await this.calculateEventPricing(entityId, eventType, quantity);
+      const calculation = await this.calculateEventPricing(entityId, eventType, Number(quantity));
       totalCost = addMoney(totalCost, calculation.finalAmount);
     }
     

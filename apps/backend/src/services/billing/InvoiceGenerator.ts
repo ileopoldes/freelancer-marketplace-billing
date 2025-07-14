@@ -12,10 +12,8 @@ import {
   Currency,
   InvoicePrefix,
 } from '@marketplace/shared';
-import { FlatFeePricer } from '../pricing/FlatFeePricer';
-import { TieredUsagePricer, UsageTier } from '../pricing/TieredUsagePricer';
 // Legacy pricing imports removed - using simplified billing logic
-import { CreditManager } from './CreditManager';
+import { CreditPackageManager } from './CreditPackageManager';
 import { ProrationEngine } from '../pricing/ProrationEngine';
 
 export interface ContractWithCustomer {
@@ -55,23 +53,12 @@ export interface InvoiceLineItem {
  * Service for generating invoices with complex pricing logic
  */
 export class InvoiceGenerator {
-  private flatFeePricer: FlatFeePricer;
-  private tieredUsagePricer: TieredUsagePricer;
-  private creditManager: CreditManager;
+  private creditPackageManager: CreditPackageManager;
   private prorationEngine: ProrationEngine;
 
   constructor(private prisma: PrismaClient) {
-    this.flatFeePricer = new FlatFeePricer();
-    
-    // Standard tier structure: 1000 free, then $0.002, then $0.001
-    this.tieredUsagePricer = new TieredUsagePricer([
-      { limit: 1000, price: createMoney('0') },
-      { limit: 1000000, price: createMoney('0.002') },
-      { limit: null, price: createMoney('0.001') }, // Unlimited tier
-    ]);
-    
     // Initialize services
-    this.creditManager = new CreditManager(prisma);
+    this.creditPackageManager = new CreditPackageManager(prisma);
     this.prorationEngine = new ProrationEngine();
   }
 
@@ -157,20 +144,20 @@ export class InvoiceGenerator {
       subtotal = addMoney(subtotal, baseFee);
     }
 
-    // 2. Usage charges using tiered pricing
-    const usageResult = this.tieredUsagePricer.calculate(usage);
-    
-    for (const tier of usageResult.tiers) {
-      if (tier.amount.amount.greaterThan(0)) {
-        lineItems.push({
-          lineType: LineType.USAGE_OVERAGE,
-          description: `Usage tier: ${tier.quantity} calls at ${tier.unitPrice.amount.toString()}`,
-          quantity: tier.quantity,
-          unitAmount: tier.unitPrice,
-          amount: tier.amount,
-        });
-        subtotal = addMoney(subtotal, tier.amount);
-      }
+    // 2. Usage charges (simplified pricing)
+    const callOverageFee = moneyFromDecimalString(contract.callOverageFee);
+    if (usage > contract.minCommitCalls) {
+      const overageQuantity = usage - contract.minCommitCalls;
+      const overageAmount = multiplyMoney(callOverageFee, overageQuantity);
+      
+      lineItems.push({
+        lineType: LineType.USAGE_OVERAGE,
+        description: `Usage overage: ${overageQuantity} calls at ${callOverageFee.amount.toString()}`,
+        quantity: overageQuantity,
+        unitAmount: callOverageFee,
+        amount: overageAmount,
+      });
+      subtotal = addMoney(subtotal, overageAmount);
     }
 
     // 3. Apply simple discount based on contract discount rate
@@ -188,9 +175,9 @@ export class InvoiceGenerator {
       });
     }
 
-    // 4. Apply available credits using CreditManager
+    // 4. Apply available credits
     const invoiceTotal = subtractMoney(subtotal, discountAmount);
-    const creditResult = await this.creditManager.applyCreditsToInvoice(
+    const creditResult = await this.applyCredits(
       contract.customerId,
       invoiceTotal,
       'pending' // Will be updated with actual invoice ID

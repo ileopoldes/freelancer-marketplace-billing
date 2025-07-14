@@ -1,19 +1,17 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: billforge-postgres
+    container_name: fmb-postgres
     environment:
-      POSTGRES_USER: billforge
-      POSTGRES_PASSWORD: billforge_password
-      POSTGRES_DB: billforge
+      POSTGRES_USER: fmb_user
+      POSTGRES_PASSWORD: fmb_password
+      POSTGRES_DB: freelancer_marketplace_billing
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U billforge"]
+      test: ["CMD-SHELL", "pg_isready -U fmb_user"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -22,9 +20,9 @@ services:
     build:
       context: ./apps/backend
       dockerfile: Dockerfile
-    container_name: billforge-backend
+    container_name: fmb-backend
     environment:
-      - DATABASE_URL=postgresql://billforge:billforge_password@postgres:5432/billforge?schema=public
+      - DATABASE_URL=postgresql://fmb_user:fmb_password@postgres:5432/freelancer_marketplace_billing?schema=public
       - PORT=3001
       - NODE_ENV=development
     ports:
