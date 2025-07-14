@@ -1,0 +1,24 @@
+{
+  "extends": ["../../.eslintrc.json"],
+  "parserOptions": {
+    "project": "./tsconfig.json"
+  },
+  "plugins": ["security"],
+  "rules": {
+    "complexity": ["warn", 10],
+    "max-lines-per-function": ["warn", 50],
+    "max-lines": ["warn", 200],
+    "max-depth": ["warn", 4],
+    "max-params": ["warn", 5],
+    "security/detect-object-injection": "warn",
+    "security/detect-non-literal-regexp": "warn",
+    "unicorn/prevent-abbreviations": "off",
+    "unicorn/no-array-reduce": "off",
+    "unicorn/no-null": "off",
+    "unicorn/consistent-function-scoping": "off",
+    "unicorn/no-useless-undefined": "off",
+    "unicorn/prefer-module": "off",
+    "unicorn/no-nested-ternary": "off"
+  },
+  "ignorePatterns": ["dist/", "node_modules/", "coverage/"]
+}

@@ -1,0 +1,30 @@
+{
+  "extends": ["../../.eslintrc.json", "next/core-web-vitals"],
+  "parserOptions": {
+    "project": "./tsconfig.json"
+  },
+  "plugins": ["react", "react-hooks"],
+  "env": {
+    "browser": true,
+    "es6": true
+  },
+  "rules": {
+    "complexity": ["warn", 10],
+    "max-lines-per-function": ["warn", 50],
+    "max-lines": ["warn", 200],
+    "max-depth": ["warn", 4],
+    "max-params": ["warn", 5],
+    "react/react-in-jsx-scope": "off",
+    "react/prop-types": "off",
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn",
+    "unicorn/prevent-abbreviations": "off",
+    "unicorn/no-array-reduce": "off",
+    "unicorn/no-null": "off",
+    "unicorn/consistent-function-scoping": "off",
+    "unicorn/no-useless-undefined": "off",
+    "unicorn/prefer-module": "off",
+    "unicorn/no-nested-ternary": "off"
+  },
+  "ignorePatterns": ["dist/", "node_modules/", "coverage/", ".next/"]
+}

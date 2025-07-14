@@ -1,0 +1,44 @@
+{
+  "extends": ["../../.eslintrc.json"],
+  "parserOptions": {
+    "project": "./tsconfig.json"
+  },
+  "plugins": ["jest", "node", "promise", "security"],
+  "env": {
+    "node": true,
+    "jest": true
+  },
+  "rules": {
+    "complexity": ["warn", 10],
+    "max-lines-per-function": ["warn", 50],
+    "max-lines": ["warn", 200],
+    "max-depth": ["warn", 4],
+    "max-params": ["warn", 5],
+    "node/no-unsupported-features/es-syntax": "off",
+    "node/no-missing-import": "off",
+    "promise/always-return": "error",
+    "promise/no-return-wrap": "error",
+    "promise/param-names": "error",
+    "promise/catch-or-return": "error",
+    "promise/no-native": "off",
+    "promise/no-nesting": "warn",
+    "promise/no-promise-in-callback": "warn",
+    "promise/no-callback-in-promise": "warn",
+    "promise/avoid-new": "warn",
+    "security/detect-object-injection": "warn",
+    "security/detect-non-literal-regexp": "warn",
+    "jest/no-disabled-tests": "warn",
+    "jest/no-focused-tests": "error",
+    "jest/no-identical-title": "error",
+    "jest/prefer-to-have-length": "warn",
+    "jest/valid-expect": "error",
+    "unicorn/prevent-abbreviations": "off",
+    "unicorn/no-array-reduce": "off",
+    "unicorn/no-null": "off",
+    "unicorn/consistent-function-scoping": "off",
+    "unicorn/no-useless-undefined": "off",
+    "unicorn/prefer-module": "off",
+    "unicorn/no-nested-ternary": "off"
+  },
+  "ignorePatterns": ["dist/", "node_modules/", "coverage/", "prisma/generated/"]
+}
