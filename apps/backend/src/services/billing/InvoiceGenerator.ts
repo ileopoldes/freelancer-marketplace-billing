@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 import {
   Money,
   createMoney,
@@ -11,10 +11,10 @@ import {
   LineType,
   Currency,
   InvoicePrefix,
-} from '@marketplace/shared';
+} from "@marketplace/shared";
 // Legacy pricing imports removed - using simplified billing logic
-import { CreditPackageManager } from './CreditPackageManager';
-import { ProrationEngine } from '../pricing/ProrationEngine';
+import { CreditPackageManager } from "./CreditPackageManager";
+import { ProrationEngine } from "../pricing/ProrationEngine";
 
 export interface ContractWithCustomer {
   id: string;
@@ -70,7 +70,7 @@ export class InvoiceGenerator {
     usage: number,
     periodStart: Date,
     periodEnd: Date,
-    billingCycle: number
+    billingCycle: number,
   ): Promise<any> {
     // Check for existing invoice (idempotency)
     const existingInvoice = await this.prisma.invoice.findFirst({
@@ -89,7 +89,7 @@ export class InvoiceGenerator {
     const calculation = await this.calculateInvoiceAmounts(
       contract,
       usage,
-      billingCycle
+      billingCycle,
     );
 
     // Generate invoice number
@@ -126,17 +126,17 @@ export class InvoiceGenerator {
   async calculateInvoiceAmounts(
     contract: ContractWithCustomer,
     usage: number,
-    billingCycle: number
+    billingCycle: number,
   ): Promise<InvoiceCalculation> {
     const lineItems: InvoiceLineItem[] = [];
-    let subtotal = createMoney('0');
+    let subtotal = createMoney("0");
 
     // 1. Base fee (flat recurring charge)
     const baseFee = moneyFromDecimalString(contract.baseFee);
     if (baseFee.amount.greaterThan(0)) {
       lineItems.push({
         lineType: LineType.BASE_FEE,
-        description: 'Monthly base fee',
+        description: "Monthly base fee",
         quantity: 1,
         unitAmount: baseFee,
         amount: baseFee,
@@ -149,7 +149,7 @@ export class InvoiceGenerator {
     if (usage > contract.minCommitCalls) {
       const overageQuantity = usage - contract.minCommitCalls;
       const overageAmount = multiplyMoney(callOverageFee, overageQuantity);
-      
+
       lineItems.push({
         lineType: LineType.USAGE_OVERAGE,
         description: `Usage overage: ${overageQuantity} calls at ${callOverageFee.amount.toString()}`,
@@ -161,16 +161,16 @@ export class InvoiceGenerator {
     }
 
     // 3. Apply simple discount based on contract discount rate
-    let discountAmount = createMoney('0');
+    let discountAmount = createMoney("0");
     const discountRate = parseFloat(contract.discountRate);
-    
+
     if (discountRate > 0 && billingCycle <= 3) {
       discountAmount = multiplyMoney(subtotal, discountRate);
       lineItems.push({
         lineType: LineType.DISCOUNT,
         description: `${(discountRate * 100).toFixed(1)}% discount (cycle ${billingCycle})`,
         quantity: 1,
-        unitAmount: createMoney('0'),
+        unitAmount: createMoney("0"),
         amount: createMoney(discountAmount.amount.negated().toString()),
       });
     }
@@ -180,16 +180,16 @@ export class InvoiceGenerator {
     const creditResult = await this.applyCredits(
       contract.customerId,
       invoiceTotal,
-      'pending' // Will be updated with actual invoice ID
+      "pending", // Will be updated with actual invoice ID
     );
     const totalCreditsApplied = creditResult.totalCreditsApplied;
 
     if (totalCreditsApplied.amount.greaterThan(0)) {
       lineItems.push({
         lineType: LineType.CREDIT,
-        description: 'Applied credits',
+        description: "Applied credits",
         quantity: 1,
-        unitAmount: createMoney('0'),
+        unitAmount: createMoney("0"),
         amount: createMoney(totalCreditsApplied.amount.negated().toString()),
       });
     }
@@ -197,7 +197,7 @@ export class InvoiceGenerator {
     // Calculate final total
     const total = subtractMoney(
       subtractMoney(subtotal, discountAmount),
-      totalCreditsApplied
+      totalCreditsApplied,
     );
 
     return {
@@ -215,7 +215,7 @@ export class InvoiceGenerator {
   async applyCredits(
     customerId: string,
     invoiceTotal: Money,
-    invoiceId: string
+    invoiceId: string,
   ): Promise<{ totalCreditsApplied: Money; finalTotal: Money }> {
     // Get available credits
     const availableCredits = await this.prisma.credit.findMany({
@@ -223,10 +223,10 @@ export class InvoiceGenerator {
         customerId,
         appliedAt: null, // Only unapplied credits
       },
-      orderBy: { createdAt: 'asc' }, // Apply oldest credits first
+      orderBy: { createdAt: "asc" }, // Apply oldest credits first
     });
 
-    let totalCreditsApplied = createMoney('0');
+    let totalCreditsApplied = createMoney("0");
     let remainingInvoiceAmount = invoiceTotal;
     const creditsToApply: string[] = [];
 
@@ -238,14 +238,19 @@ export class InvoiceGenerator {
 
       const creditAmount = moneyFromDecimalString(credit.amount.toString());
       const appliedAmount = {
-        amount: creditAmount.amount.lessThanOrEqualTo(remainingInvoiceAmount.amount)
+        amount: creditAmount.amount.lessThanOrEqualTo(
+          remainingInvoiceAmount.amount,
+        )
           ? creditAmount.amount
           : remainingInvoiceAmount.amount,
         currency: creditAmount.currency,
       };
 
       totalCreditsApplied = addMoney(totalCreditsApplied, appliedAmount);
-      remainingInvoiceAmount = subtractMoney(remainingInvoiceAmount, appliedAmount);
+      remainingInvoiceAmount = subtractMoney(
+        remainingInvoiceAmount,
+        appliedAmount,
+      );
       creditsToApply.push(credit.id);
 
       // If we only partially used this credit, we'd need to create a new credit
@@ -253,7 +258,7 @@ export class InvoiceGenerator {
     }
 
     // Mark credits as applied
-    if (creditsToApply.length > 0 && invoiceId !== 'pending') {
+    if (creditsToApply.length > 0 && invoiceId !== "pending") {
       await this.prisma.credit.updateMany({
         where: {
           id: { in: creditsToApply },
@@ -275,7 +280,7 @@ export class InvoiceGenerator {
    */
   private async createInvoiceLines(
     invoiceId: string,
-    lineItems: InvoiceLineItem[]
+    lineItems: InvoiceLineItem[],
   ): Promise<void> {
     const lineData = lineItems.map((item) => ({
       invoiceId,
@@ -298,7 +303,7 @@ export class InvoiceGenerator {
   private async generateInvoiceNumber(): Promise<string> {
     const prefix = process.env.INVOICE_NUMBER_PREFIX || InvoicePrefix.STANDARD;
     const year = new Date().getFullYear();
-    
+
     // Get the count of invoices this year
     const invoiceCount = await this.prisma.invoice.count({
       where: {
@@ -309,7 +314,7 @@ export class InvoiceGenerator {
       },
     });
 
-    const sequenceNumber = (invoiceCount + 1).toString().padStart(6, '0');
+    const sequenceNumber = (invoiceCount + 1).toString().padStart(6, "0");
     return `${prefix}-${year}-${sequenceNumber}`;
   }
 
@@ -322,4 +327,3 @@ export class InvoiceGenerator {
     return dueDate;
   }
 }
-

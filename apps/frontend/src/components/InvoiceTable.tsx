@@ -1,60 +1,75 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useInvoices } from '@/hooks/api'
-import { formatCurrency, formatDate, getStatusColor, debounce } from '@/lib/utils'
-import type { Invoice } from '@/lib/api'
+import { useState } from "react";
+import { useInvoices } from "@/hooks/api";
+import {
+  formatCurrency,
+  formatDate,
+  getStatusColor,
+  debounce,
+} from "@/lib/utils";
+import type { Invoice } from "@/lib/api";
 
 export function InvoiceTable() {
-  const { data: invoices = [], isLoading, isError } = useInvoices()
-  const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'PAID' | 'OVERDUE'>('ALL')
-  const [sortBy, setSortBy] = useState<'invoiceNumber' | 'total' | 'issueDate'>('issueDate')
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  const { data: invoices = [], isLoading, isError } = useInvoices();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<
+    "ALL" | "PENDING" | "PAID" | "OVERDUE"
+  >("ALL");
+  const [sortBy, setSortBy] = useState<"invoiceNumber" | "total" | "issueDate">(
+    "issueDate",
+  );
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   // Filter invoices
-  const filteredInvoices = invoices.filter(invoice => {
-    const matchesSearch = 
+  const filteredInvoices = invoices.filter((invoice) => {
+    const matchesSearch =
       invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (invoice.customer?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (invoice.customer?.email || '').toLowerCase().includes(searchTerm.toLowerCase())
-    
-    const matchesStatus = statusFilter === 'ALL' || invoice.status === statusFilter
-    
-    return matchesSearch && matchesStatus
-  })
+      (invoice.customer?.name || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      (invoice.customer?.email || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+
+    const matchesStatus =
+      statusFilter === "ALL" || invoice.status === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
 
   // Sort invoices
   const sortedInvoices = [...filteredInvoices].sort((a, b) => {
-    let comparison = 0
-    
+    let comparison = 0;
+
     switch (sortBy) {
-      case 'invoiceNumber':
-        comparison = a.invoiceNumber.localeCompare(b.invoiceNumber)
-        break
-      case 'total':
-        comparison = parseFloat(a.total) - parseFloat(b.total)
-        break
-      case 'issueDate':
-        comparison = new Date(a.issueDate).getTime() - new Date(b.issueDate).getTime()
-        break
+      case "invoiceNumber":
+        comparison = a.invoiceNumber.localeCompare(b.invoiceNumber);
+        break;
+      case "total":
+        comparison = parseFloat(a.total) - parseFloat(b.total);
+        break;
+      case "issueDate":
+        comparison =
+          new Date(a.issueDate).getTime() - new Date(b.issueDate).getTime();
+        break;
     }
 
-    return sortOrder === 'asc' ? comparison : -comparison
-  })
+    return sortOrder === "asc" ? comparison : -comparison;
+  });
 
   const debouncedSearch = debounce((value: string) => {
-    setSearchTerm(value)
-  }, 300)
+    setSearchTerm(value);
+  }, 300);
 
   const handleSort = (field: typeof sortBy) => {
     if (sortBy === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
     } else {
-      setSortBy(field)
-      setSortOrder('asc')
+      setSortBy(field);
+      setSortOrder("asc");
     }
-  }
+  };
 
   if (isLoading) {
     return (
@@ -68,21 +83,30 @@ export function InvoiceTable() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   if (isError) {
     return (
       <div className="card p-6 border-error-200 bg-error-50">
-        <p className="text-error-700">Failed to load invoices. Please try again.</p>
+        <p className="text-error-700">
+          Failed to load invoices. Please try again.
+        </p>
       </div>
-    )
+    );
   }
 
-  const totalInvoices = invoices.length
-  const totalRevenue = invoices.reduce((sum, invoice) => sum + parseFloat(invoice.total), 0)
-  const paidInvoices = invoices.filter(invoice => invoice.status === 'PAID').length
-  const pendingInvoices = invoices.filter(invoice => invoice.status === 'PENDING').length
+  const totalInvoices = invoices.length;
+  const totalRevenue = invoices.reduce(
+    (sum, invoice) => sum + parseFloat(invoice.total),
+    0,
+  );
+  const paidInvoices = invoices.filter(
+    (invoice) => invoice.status === "PAID",
+  ).length;
+  const pendingInvoices = invoices.filter(
+    (invoice) => invoice.status === "PENDING",
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -94,15 +118,21 @@ export function InvoiceTable() {
         </div>
         <div className="card p-6">
           <h3 className="text-sm font-medium text-gray-500">Total Revenue</h3>
-          <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalRevenue)}</p>
+          <p className="text-2xl font-bold text-gray-900">
+            {formatCurrency(totalRevenue)}
+          </p>
         </div>
         <div className="card p-6">
           <h3 className="text-sm font-medium text-gray-500">Paid Invoices</h3>
           <p className="text-2xl font-bold text-success-600">{paidInvoices}</p>
         </div>
         <div className="card p-6">
-          <h3 className="text-sm font-medium text-gray-500">Pending Invoices</h3>
-          <p className="text-2xl font-bold text-warning-600">{pendingInvoices}</p>
+          <h3 className="text-sm font-medium text-gray-500">
+            Pending Invoices
+          </h3>
+          <p className="text-2xl font-bold text-warning-600">
+            {pendingInvoices}
+          </p>
         </div>
       </div>
 
@@ -114,7 +144,9 @@ export function InvoiceTable() {
             <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+                onChange={(e) =>
+                  setStatusFilter(e.target.value as typeof statusFilter)
+                }
                 className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="ALL">All Status</option>
@@ -138,13 +170,13 @@ export function InvoiceTable() {
               <tr>
                 <th>
                   <button
-                    onClick={() => handleSort('invoiceNumber')}
+                    onClick={() => handleSort("invoiceNumber")}
                     className="flex items-center space-x-1 hover:text-gray-700"
                   >
                     <span>Invoice Number</span>
-                    {sortBy === 'invoiceNumber' && (
+                    {sortBy === "invoiceNumber" && (
                       <span className="text-primary-500">
-                        {sortOrder === 'asc' ? '↑' : '↓'}
+                        {sortOrder === "asc" ? "↑" : "↓"}
                       </span>
                     )}
                   </button>
@@ -153,13 +185,13 @@ export function InvoiceTable() {
                 <th>Status</th>
                 <th>
                   <button
-                    onClick={() => handleSort('total')}
+                    onClick={() => handleSort("total")}
                     className="flex items-center space-x-1 hover:text-gray-700"
                   >
                     <span>Total</span>
-                    {sortBy === 'total' && (
+                    {sortBy === "total" && (
                       <span className="text-primary-500">
-                        {sortOrder === 'asc' ? '↑' : '↓'}
+                        {sortOrder === "asc" ? "↑" : "↓"}
                       </span>
                     )}
                   </button>
@@ -169,13 +201,13 @@ export function InvoiceTable() {
                 <th>Credits</th>
                 <th>
                   <button
-                    onClick={() => handleSort('issueDate')}
+                    onClick={() => handleSort("issueDate")}
                     className="flex items-center space-x-1 hover:text-gray-700"
                   >
                     <span>Issue Date</span>
-                    {sortBy === 'issueDate' && (
+                    {sortBy === "issueDate" && (
                       <span className="text-primary-500">
-                        {sortOrder === 'asc' ? '↑' : '↓'}
+                        {sortOrder === "asc" ? "↑" : "↓"}
                       </span>
                     )}
                   </button>
@@ -192,10 +224,10 @@ export function InvoiceTable() {
                   <td>
                     <div className="text-sm">
                       <div className="font-medium text-gray-900">
-                        {invoice.customer?.name || 'Unknown Customer'}
+                        {invoice.customer?.name || "Unknown Customer"}
                       </div>
                       <div className="text-gray-500">
-                        {invoice.customer?.email || ''}
+                        {invoice.customer?.email || ""}
                       </div>
                     </div>
                   </td>
@@ -211,16 +243,14 @@ export function InvoiceTable() {
                     {formatCurrency(invoice.subtotal)}
                   </td>
                   <td className="text-gray-500">
-                    {parseFloat(invoice.discountAmount) > 0 
+                    {parseFloat(invoice.discountAmount) > 0
                       ? `-${formatCurrency(invoice.discountAmount)}`
-                      : formatCurrency(0)
-                    }
+                      : formatCurrency(0)}
                   </td>
                   <td className="text-gray-500">
-                    {parseFloat(invoice.creditAmount) > 0 
+                    {parseFloat(invoice.creditAmount) > 0
                       ? `-${formatCurrency(invoice.creditAmount)}`
-                      : formatCurrency(0)
-                    }
+                      : formatCurrency(0)}
                   </td>
                   <td className="text-gray-500">
                     {formatDate(invoice.issueDate)}
@@ -236,13 +266,12 @@ export function InvoiceTable() {
 
         {sortedInvoices.length === 0 && (
           <div className="p-6 text-center text-gray-500">
-            {searchTerm || statusFilter !== 'ALL'
-              ? 'No invoices found matching your criteria.'
-              : 'No invoices found.'}
+            {searchTerm || statusFilter !== "ALL"
+              ? "No invoices found matching your criteria."
+              : "No invoices found."}
           </div>
         )}
       </div>
     </div>
-  )
+  );
 }
-

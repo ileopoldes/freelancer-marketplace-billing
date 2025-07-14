@@ -1,20 +1,23 @@
-import { FastifyInstance } from 'fastify';
-import { PrismaClient } from '@prisma/client';
+import { FastifyInstance } from "fastify";
+import { PrismaClient } from "@prisma/client";
 
-export async function invoiceRoutes(server: FastifyInstance, options: { prisma: PrismaClient }) {
+export async function invoiceRoutes(
+  server: FastifyInstance,
+  options: { prisma: PrismaClient },
+) {
   const { prisma } = options;
 
   // Get all invoices
-  server.get('/api/invoices', async (request, reply) => {
+  server.get("/api/invoices", async (request, reply) => {
     try {
       const invoices = await prisma.invoice.findMany({
         include: {
           customer: true,
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
       });
-      
-      const formattedInvoices = invoices.map(invoice => ({
+
+      const formattedInvoices = invoices.map((invoice) => ({
         id: invoice.id,
         customerId: invoice.customerId,
         invoiceNumber: invoice.number,
@@ -24,7 +27,9 @@ export async function invoiceRoutes(server: FastifyInstance, options: { prisma: 
         total: invoice.total,
         status: invoice.status,
         issueDate: invoice.createdAt.toISOString(),
-        dueDate: invoice.dueDate ? invoice.dueDate.toISOString() : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        dueDate: invoice.dueDate
+          ? invoice.dueDate.toISOString()
+          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         createdAt: invoice.createdAt.toISOString(),
         customer: {
           id: invoice.customer.id,
@@ -35,20 +40,20 @@ export async function invoiceRoutes(server: FastifyInstance, options: { prisma: 
           updatedAt: invoice.customer.updatedAt.toISOString(),
         },
       }));
-      
+
       return { invoices: formattedInvoices };
     } catch (error) {
-      server.log.error('Failed to fetch invoices:', error);
+      server.log.error("Failed to fetch invoices:", error);
       reply.status(500);
-      return { error: 'Failed to fetch invoices' };
+      return { error: "Failed to fetch invoices" };
     }
   });
 
   // Get invoice by ID
-  server.get('/api/invoices/:id', async (request, reply) => {
+  server.get("/api/invoices/:id", async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
-      
+
       const invoice = await prisma.invoice.findUnique({
         where: { id },
         include: {
@@ -56,12 +61,12 @@ export async function invoiceRoutes(server: FastifyInstance, options: { prisma: 
           invoiceLines: true,
         },
       });
-      
+
       if (!invoice) {
         reply.status(404);
-        return { error: 'Invoice not found' };
+        return { error: "Invoice not found" };
       }
-      
+
       const formattedInvoice = {
         id: invoice.id,
         customerId: invoice.customerId,
@@ -84,13 +89,12 @@ export async function invoiceRoutes(server: FastifyInstance, options: { prisma: 
         },
         lines: invoice.invoiceLines,
       };
-      
+
       return formattedInvoice;
     } catch (error) {
-      server.log.error('Failed to fetch invoice:', error);
+      server.log.error("Failed to fetch invoice:", error);
       reply.status(500);
-      return { error: 'Failed to fetch invoice' };
+      return { error: "Failed to fetch invoice" };
     }
   });
 }
-

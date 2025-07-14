@@ -1,10 +1,10 @@
-import { PrismaClient } from '@prisma/client';
-import { BillingJobService } from './BillingJobService';
-import { InvoiceGenerator, ContractWithCustomer } from './InvoiceGenerator';
-import { CreditPackageManager } from './CreditPackageManager';
-import { MarketplaceEventProcessor } from './MarketplaceEventProcessor';
-import { PayAsYouGoPricer } from '../pricing/PayAsYouGoPricer';
-import { SeatBasedPricer } from '../pricing/SeatBasedPricer';
+import { PrismaClient } from "@prisma/client";
+import { BillingJobService } from "./BillingJobService";
+import { InvoiceGenerator, ContractWithCustomer } from "./InvoiceGenerator";
+import { CreditPackageManager } from "./CreditPackageManager";
+import { MarketplaceEventProcessor } from "./MarketplaceEventProcessor";
+import { PayAsYouGoPricer } from "../pricing/PayAsYouGoPricer";
+import { SeatBasedPricer } from "../pricing/SeatBasedPricer";
 import {
   Money,
   createMoney,
@@ -13,7 +13,7 @@ import {
   ContractStatus,
   JobStatus,
   dateMatchesRecurrence,
-} from '@marketplace/shared';
+} from "@marketplace/shared";
 
 export interface BillingRunResult {
   jobId: string;
@@ -56,19 +56,19 @@ export class MarketplaceBillingEngine {
    * Execute a complete billing run
    */
   async executeBillingRun(
-    effectiveDate: Date = new Date()
+    effectiveDate: Date = new Date(),
   ): Promise<BillingRunResult> {
     // 1. Start billing job
     const job = await this.jobService.startBillingJob(
       effectiveDate,
-      'automatic'
+      "automatic",
     );
 
     try {
       // 2. Find contracts due for billing
       const contractsDue = await this.findContractsDueForBilling(effectiveDate);
-      
-      await this.jobService.updateJobStatus(job.id, 'RUNNING', {
+
+      await this.jobService.updateJobStatus(job.id, "RUNNING", {
         totalCustomers: contractsDue.length,
       });
 
@@ -78,7 +78,7 @@ export class MarketplaceBillingEngine {
         totalContracts: contractsDue.length,
         processedContracts: 0,
         invoicesGenerated: 0,
-        totalBilled: createMoney('0'),
+        totalBilled: createMoney("0"),
         skippedContracts: 0,
         errors: [] as string[],
       };
@@ -88,14 +88,14 @@ export class MarketplaceBillingEngine {
           // Calculate billing period
           const billingPeriod = this.calculateBillingPeriod(
             contract,
-            effectiveDate
+            effectiveDate,
           );
 
           // Aggregate usage for the period
           const usage = await this.aggregateUsage(
             contract.id,
             billingPeriod.start,
-            billingPeriod.end
+            billingPeriod.end,
           );
 
           // Generate invoice
@@ -104,7 +104,7 @@ export class MarketplaceBillingEngine {
             usage.totalUsage,
             billingPeriod.start,
             billingPeriod.end,
-            contract.billingCycle || 1
+            contract.billingCycle || 1,
           );
 
           // Update results
@@ -112,15 +112,14 @@ export class MarketplaceBillingEngine {
           results.invoicesGenerated++;
           results.totalBilled = addMoney(
             results.totalBilled,
-            moneyFromDecimalString(invoice.total)
+            moneyFromDecimalString(invoice.total),
           );
 
           // Update next billing date
           await this.updateNextBillingDate(contract.id, effectiveDate);
-
         } catch (error) {
           results.errors.push(
-            `Contract ${contract.id}: ${error instanceof Error ? error.message : 'Unknown error'}`
+            `Contract ${contract.id}: ${error instanceof Error ? error.message : "Unknown error"}`,
           );
           results.skippedContracts++;
         }
@@ -135,12 +134,11 @@ export class MarketplaceBillingEngine {
       });
 
       return results;
-
     } catch (error) {
       // Mark job as failed
       await this.jobService.failJob(
         job.id,
-        error instanceof Error ? error.message : 'Unknown error'
+        error instanceof Error ? error.message : "Unknown error",
       );
       throw error;
     }
@@ -150,7 +148,7 @@ export class MarketplaceBillingEngine {
    * Find contracts that are due for billing
    */
   async findContractsDueForBilling(
-    effectiveDate: Date
+    effectiveDate: Date,
   ): Promise<ContractWithCustomer[]> {
     const contracts = await this.prisma.contract.findMany({
       where: {
@@ -163,11 +161,11 @@ export class MarketplaceBillingEngine {
         customer: true,
       },
       orderBy: {
-        nextBillingDate: 'asc',
+        nextBillingDate: "asc",
       },
     });
 
-    return contracts.map(contract => ({
+    return contracts.map((contract) => ({
       id: contract.id,
       customerId: contract.customerId,
       baseFee: contract.baseFee.toString(),
@@ -191,7 +189,7 @@ export class MarketplaceBillingEngine {
   async aggregateUsage(
     contractId: string,
     periodStart: Date,
-    periodEnd: Date
+    periodEnd: Date,
   ): Promise<ContractUsage> {
     const usageRecords = await this.prisma.usageEvent.findMany({
       where: {
@@ -205,7 +203,7 @@ export class MarketplaceBillingEngine {
 
     const totalUsage = usageRecords.reduce(
       (sum, record) => sum + record.quantity,
-      0
+      0,
     );
 
     return {
@@ -221,32 +219,32 @@ export class MarketplaceBillingEngine {
    */
   private calculateBillingPeriod(
     contract: any,
-    effectiveDate: Date
+    effectiveDate: Date,
   ): { start: Date; end: Date } {
     // Get the contract's next billing date or use the current date if missing
     let nextBillingDate: Date;
-    
+
     if (contract.nextBillingDate) {
       nextBillingDate = new Date(contract.nextBillingDate);
     } else {
       // Fallback to effectiveDate if nextBillingDate is missing
       nextBillingDate = new Date(effectiveDate);
     }
-    
+
     // Validate the date
     if (isNaN(nextBillingDate.getTime())) {
-      console.error('Invalid nextBillingDate for contract', contract.id);
+      console.error("Invalid nextBillingDate for contract", contract.id);
       nextBillingDate = new Date(effectiveDate);
     }
-    
+
     // Calculate the billing period: from one month before nextBillingDate to nextBillingDate
     const periodEnd = new Date(nextBillingDate);
     const periodStart = new Date(nextBillingDate);
-    
+
     // Subtract one month properly
     const currentMonth = periodStart.getMonth();
     const currentYear = periodStart.getFullYear();
-    
+
     if (currentMonth === 0) {
       // January -> December of previous year
       periodStart.setFullYear(currentYear - 1, 11, periodStart.getDate());
@@ -254,11 +252,15 @@ export class MarketplaceBillingEngine {
       // Normal case: subtract one month
       periodStart.setMonth(currentMonth - 1);
     }
-    
+
     // Handle month-end date adjustments (e.g., Mar 31 -> Feb 28/29)
     if (periodStart.getDate() !== nextBillingDate.getDate()) {
       // The date was adjusted due to shorter month, use last day of that month
-      const lastDay = new Date(periodStart.getFullYear(), periodStart.getMonth() + 1, 0).getDate();
+      const lastDay = new Date(
+        periodStart.getFullYear(),
+        periodStart.getMonth() + 1,
+        0,
+      ).getDate();
       periodStart.setDate(Math.min(nextBillingDate.getDate(), lastDay));
     }
 
@@ -273,16 +275,16 @@ export class MarketplaceBillingEngine {
    */
   private async updateNextBillingDate(
     contractId: string,
-    effectiveDate: Date
+    effectiveDate: Date,
   ): Promise<void> {
     // For monthly billing, add one month using proper date arithmetic
     const nextBillingDate = new Date(effectiveDate);
-    
+
     // Properly handle month boundaries
     const year = nextBillingDate.getFullYear();
     const month = nextBillingDate.getMonth();
     const day = nextBillingDate.getDate();
-    
+
     if (month === 11) {
       // December -> January of next year
       nextBillingDate.setFullYear(year + 1, 0, day);
@@ -290,10 +292,14 @@ export class MarketplaceBillingEngine {
       // Normal case: add one month
       nextBillingDate.setFullYear(year, month + 1, day);
     }
-    
+
     // Handle cases where the target day doesn't exist in the next month
     // (e.g., Jan 31 -> Feb 28/29)
-    const lastDayOfNextMonth = new Date(nextBillingDate.getFullYear(), nextBillingDate.getMonth() + 1, 0).getDate();
+    const lastDayOfNextMonth = new Date(
+      nextBillingDate.getFullYear(),
+      nextBillingDate.getMonth() + 1,
+      0,
+    ).getDate();
     if (nextBillingDate.getDate() > lastDayOfNextMonth) {
       nextBillingDate.setDate(lastDayOfNextMonth);
     }
@@ -315,7 +321,7 @@ export class MarketplaceBillingEngine {
    */
   async billCustomer(
     customerId: string,
-    effectiveDate: Date = new Date()
+    effectiveDate: Date = new Date(),
   ): Promise<BillingRunResult> {
     const contracts = await this.prisma.contract.findMany({
       where: {
@@ -334,8 +340,8 @@ export class MarketplaceBillingEngine {
     // Start job for specific customer
     const job = await this.jobService.startBillingJob(
       effectiveDate,
-      'manual',
-      customerId
+      "manual",
+      customerId,
     );
 
     try {
@@ -344,7 +350,7 @@ export class MarketplaceBillingEngine {
         totalContracts: contracts.length,
         processedContracts: 0,
         invoicesGenerated: 0,
-        totalBilled: createMoney('0'),
+        totalBilled: createMoney("0"),
         skippedContracts: 0,
         errors: [] as string[],
       };
@@ -369,13 +375,13 @@ export class MarketplaceBillingEngine {
 
           const billingPeriod = this.calculateBillingPeriod(
             contract,
-            effectiveDate
+            effectiveDate,
           );
 
           const usage = await this.aggregateUsage(
             contract.id,
             billingPeriod.start,
-            billingPeriod.end
+            billingPeriod.end,
           );
 
           const invoice = await this.invoiceGenerator.generateInvoice(
@@ -383,19 +389,18 @@ export class MarketplaceBillingEngine {
             usage.totalUsage,
             billingPeriod.start,
             billingPeriod.end,
-            contract.billingCycle
+            contract.billingCycle,
           );
 
           results.processedContracts++;
           results.invoicesGenerated++;
           results.totalBilled = addMoney(
             results.totalBilled,
-            moneyFromDecimalString(invoice.total)
+            moneyFromDecimalString(invoice.total),
           );
-
         } catch (error) {
           results.errors.push(
-            `Contract ${contract.id}: ${error instanceof Error ? error.message : 'Unknown error'}`
+            `Contract ${contract.id}: ${error instanceof Error ? error.message : "Unknown error"}`,
           );
           results.skippedContracts++;
         }
@@ -409,11 +414,10 @@ export class MarketplaceBillingEngine {
       });
 
       return results;
-
     } catch (error) {
       await this.jobService.failJob(
         job.id,
-        error instanceof Error ? error.message : 'Unknown error'
+        error instanceof Error ? error.message : "Unknown error",
       );
       throw error;
     }
@@ -445,18 +449,21 @@ export class MarketplaceBillingEngine {
    */
   async filterContractsBySchedule(
     contracts: any[],
-    effectiveDate: Date
+    effectiveDate: Date,
   ): Promise<any[]> {
-    return contracts.filter(contract => {
+    return contracts.filter((contract) => {
       if (!contract.recurrenceRule) {
         // Default to monthly billing on the 1st
         return effectiveDate.getDate() === 1;
       }
-      
+
       try {
         return dateMatchesRecurrence(contract.recurrenceRule, effectiveDate);
       } catch (error) {
-        console.warn(`Invalid recurrence rule for contract ${contract.id}:`, error);
+        console.warn(
+          `Invalid recurrence rule for contract ${contract.id}:`,
+          error,
+        );
         // Fallback to monthly billing on 1st
         return effectiveDate.getDate() === 1;
       }
@@ -469,7 +476,7 @@ export class MarketplaceBillingEngine {
   async aggregateUsageForPeriod(
     contractId: string,
     periodStart: Date,
-    periodEnd: Date
+    periodEnd: Date,
   ): Promise<number> {
     const usageRecords = await this.prisma.usageEvent.findMany({
       where: {
@@ -495,7 +502,7 @@ export class MarketplaceBillingEngine {
   }> {
     try {
       const result = await this.executeBillingRun(asOfDate);
-      
+
       return {
         success: true,
         invoicesCreated: result.invoicesGenerated,
@@ -507,7 +514,8 @@ export class MarketplaceBillingEngine {
         where: { asOfDate },
         data: {
           status: JobStatus.FAILED,
-          errorMessage: error instanceof Error ? error.message : 'Unknown error',
+          errorMessage:
+            error instanceof Error ? error.message : "Unknown error",
           completedAt: new Date(),
         },
       });
@@ -516,7 +524,7 @@ export class MarketplaceBillingEngine {
         success: false,
         invoicesCreated: 0,
         totalCustomers: 0,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       };
     }
   }
@@ -557,9 +565,9 @@ export class MarketplaceBillingEngine {
   async processMarketplaceEvent(
     entityId: string,
     userId: string,
-    eventType: 'project_posted' | 'freelancer_hired' | 'custom',
+    eventType: "project_posted" | "freelancer_hired" | "custom",
     quantity: number = 1,
-    metadata?: Record<string, any>
+    metadata?: Record<string, any>,
   ) {
     return this.marketplaceEventProcessor.processEvent({
       entityId,
@@ -595,10 +603,14 @@ export class MarketplaceBillingEngine {
   async getEntityBillingSummary(
     entityId: string,
     fromDate: Date,
-    toDate: Date
+    toDate: Date,
   ) {
     const [eventSummary, seatUtilization] = await Promise.all([
-      this.marketplaceEventProcessor.getBillingSummary(entityId, fromDate, toDate),
+      this.marketplaceEventProcessor.getBillingSummary(
+        entityId,
+        fromDate,
+        toDate,
+      ),
       this.seatBasedPricer.calculateSeatUtilization(entityId),
     ]);
 
@@ -611,4 +623,3 @@ export class MarketplaceBillingEngine {
     };
   }
 }
-

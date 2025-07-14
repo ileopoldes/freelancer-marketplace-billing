@@ -1,5 +1,5 @@
-import { PrismaClient } from '@prisma/client';
-import { JobStatus, BillingTrigger } from '@marketplace/shared';
+import { PrismaClient } from "@prisma/client";
+import { JobStatus, BillingTrigger } from "@marketplace/shared";
 
 export interface BillingJobResult {
   id: string;
@@ -20,16 +20,19 @@ export class BillingJobService {
 
   /**
    * Create a new billing job or return existing one (idempotency)
-   * 
+   *
    * @param asOfDate Date to run billing for
    * @param forceRetry Whether to allow retry of failed jobs
    * @returns Billing job record
    */
-  async createOrGetJob(asOfDate: Date, forceRetry = false): Promise<BillingJobResult> {
+  async createOrGetJob(
+    asOfDate: Date,
+    forceRetry = false,
+  ): Promise<BillingJobResult> {
     console.log(`🔧 [BILLING-JOB-SERVICE] createOrGetJob called:`);
     console.log(`   - AsOf Date: ${asOfDate.toISOString()}`);
     console.log(`   - Force Retry: ${forceRetry}`);
-    
+
     // Check for existing job
     console.log(`🔍 [BILLING-JOB-SERVICE] Checking for existing job...`);
     const existingJob = await this.prisma.billingJob.findFirst({
@@ -41,30 +44,41 @@ export class BillingJobService {
       console.log(`   - ID: ${existingJob.id}`);
       console.log(`   - Status: ${existingJob.status}`);
       console.log(`   - Started: ${existingJob.startedAt.toISOString()}`);
-      console.log(`   - Error: ${existingJob.errorMessage || 'None'}`);
-      
+      console.log(`   - Error: ${existingJob.errorMessage || "None"}`);
+
       // If job is completed, return it (idempotency)
       if (existingJob.status === JobStatus.COMPLETED) {
         console.log(`✅ [BILLING-JOB-SERVICE] Returning completed job`);
         return existingJob as BillingJobResult;
       }
-      
+
       // If job is running, prevent concurrent execution
-      if (existingJob.status === JobStatus.RUNNING || existingJob.status === JobStatus.PENDING) {
-        console.log(`❌ [BILLING-JOB-SERVICE] Job already running/pending - throwing error`);
-        throw new Error(`Billing job already running for date ${asOfDate.toISOString()}`);
-      }
-      
-      // If job failed and retry not requested, throw error
-      if (existingJob.status === JobStatus.FAILED && !forceRetry) {
-        console.log(`❌ [BILLING-JOB-SERVICE] Job failed and no retry requested - throwing error`);
+      if (
+        existingJob.status === JobStatus.RUNNING ||
+        existingJob.status === JobStatus.PENDING
+      ) {
+        console.log(
+          `❌ [BILLING-JOB-SERVICE] Job already running/pending - throwing error`,
+        );
         throw new Error(
-          `Billing job failed for date ${asOfDate.toISOString()}. ` +
-          `Error: ${existingJob.errorMessage}. Use forceRetry=true to retry.`
+          `Billing job already running for date ${asOfDate.toISOString()}`,
         );
       }
-      
-      console.log(`🔄 [BILLING-JOB-SERVICE] Existing job can be retried or recreated`);
+
+      // If job failed and retry not requested, throw error
+      if (existingJob.status === JobStatus.FAILED && !forceRetry) {
+        console.log(
+          `❌ [BILLING-JOB-SERVICE] Job failed and no retry requested - throwing error`,
+        );
+        throw new Error(
+          `Billing job failed for date ${asOfDate.toISOString()}. ` +
+            `Error: ${existingJob.errorMessage}. Use forceRetry=true to retry.`,
+        );
+      }
+
+      console.log(
+        `🔄 [BILLING-JOB-SERVICE] Existing job can be retried or recreated`,
+      );
     } else {
       console.log(`✅ [BILLING-JOB-SERVICE] No existing job found`);
     }
@@ -109,7 +123,7 @@ export class BillingJobService {
     asOfDate: Date,
     totalCustomers: number,
     processedCustomers: number,
-    invoicesCreated: number
+    invoicesCreated: number,
   ): Promise<void> {
     await this.prisma.billingJob.update({
       where: { asOfDate },
@@ -128,7 +142,7 @@ export class BillingJobService {
     asOfDate: Date,
     totalCustomers: number,
     processedCustomers: number,
-    invoicesCreated: number
+    invoicesCreated: number,
   ): Promise<void> {
     await this.prisma.billingJob.update({
       where: { asOfDate },
@@ -172,7 +186,7 @@ export class BillingJobService {
    */
   async getRecentJobs(limit: number = 10): Promise<BillingJobResult[]> {
     const jobs = await this.prisma.billingJob.findMany({
-      orderBy: { startedAt: 'desc' },
+      orderBy: { startedAt: "desc" },
       take: limit,
     });
 
@@ -187,7 +201,7 @@ export class BillingJobService {
       console.log(`💥 [BILLING-JOB-SERVICE] Marking job as failed:`);
       console.log(`   - Job ID: ${jobId}`);
       console.log(`   - Error Message: ${errorMessage}`);
-      
+
       const result = await this.prisma.billingJob.update({
         where: { id: jobId },
         data: {
@@ -196,7 +210,7 @@ export class BillingJobService {
           completedAt: new Date(),
         },
       });
-      
+
       console.log(`✅ [BILLING-JOB-SERVICE] Job marked as failed:`);
       console.log(`   - Final Status: ${result.status}`);
     } catch (error) {
@@ -216,13 +230,17 @@ export class BillingJobService {
   /**
    * Update job status
    */
-  async updateJobStatus(jobId: string, status: string, data: any = {}): Promise<void> {
+  async updateJobStatus(
+    jobId: string,
+    status: string,
+    data: any = {},
+  ): Promise<void> {
     try {
       console.log(`📝 [BILLING-JOB-SERVICE] Updating job status:`);
       console.log(`   - Job ID: ${jobId}`);
       console.log(`   - New Status: ${status}`);
       console.log(`   - Additional Data:`, data);
-      
+
       const result = await this.prisma.billingJob.update({
         where: { id: jobId },
         data: {
@@ -230,7 +248,7 @@ export class BillingJobService {
           ...data,
         },
       });
-      
+
       console.log(`✅ [BILLING-JOB-SERVICE] Job status updated successfully`);
       console.log(`   - Updated Status: ${result.status}`);
     } catch (error) {
@@ -254,7 +272,7 @@ export class BillingJobService {
       console.log(`🏁 [BILLING-JOB-SERVICE] Completing job:`);
       console.log(`   - Job ID: ${jobId}`);
       console.log(`   - Completion Data:`, data);
-      
+
       // Only include valid database fields
       const updateData: any = {
         status: JobStatus.COMPLETED,
@@ -262,20 +280,22 @@ export class BillingJobService {
         processedCustomers: data.processedContracts || 0,
         invoicesCreated: data.invoicesGenerated || 0,
       };
-      
+
       // Store additional data in metadata if needed
       if (data.totalBilled || data.errors) {
         updateData.metadata = {
-          totalBilled: data.totalBilled ? data.totalBilled.amount.toString() : undefined,
+          totalBilled: data.totalBilled
+            ? data.totalBilled.amount.toString()
+            : undefined,
           errors: data.errors || [],
         };
       }
-      
+
       const result = await this.prisma.billingJob.update({
         where: { id: jobId },
         data: updateData,
       });
-      
+
       console.log(`✅ [BILLING-JOB-SERVICE] Job completed successfully:`);
       console.log(`   - Final Status: ${result.status}`);
       console.log(`   - Processed: ${result.processedCustomers}`);
@@ -308,14 +328,14 @@ export class BillingJobService {
    */
   async startBillingJob(
     asOfDate: Date,
-    trigger: 'automatic' | 'manual',
-    customerId?: string
+    trigger: "automatic" | "manual",
+    customerId?: string,
   ): Promise<BillingJobResult> {
     console.log(`🔧 [BILLING-JOB-SERVICE] startBillingJob called:`);
     console.log(`   - AsOf Date: ${asOfDate.toISOString()}`);
     console.log(`   - Trigger: ${trigger}`);
-    console.log(`   - Customer ID: ${customerId || 'ALL'}`);
-    
+    console.log(`   - Customer ID: ${customerId || "ALL"}`);
+
     // Check for existing job
     const existingJob = await this.prisma.billingJob.findFirst({
       where: { asOfDate },
@@ -325,22 +345,29 @@ export class BillingJobService {
       console.log(`⚠️ [BILLING-JOB-SERVICE] Found existing job:`);
       console.log(`   - ID: ${existingJob.id}`);
       console.log(`   - Status: ${existingJob.status}`);
-      
+
       // If job is completed, return it (idempotency)
       if (existingJob.status === JobStatus.COMPLETED) {
         console.log(`✅ [BILLING-JOB-SERVICE] Returning completed job`);
         return existingJob as BillingJobResult;
       }
-      
+
       // If job is running or pending, return it (don't throw error)
-      if (existingJob.status === JobStatus.RUNNING || existingJob.status === JobStatus.PENDING) {
-        console.log(`🔄 [BILLING-JOB-SERVICE] Job already running/pending - returning existing job`);
+      if (
+        existingJob.status === JobStatus.RUNNING ||
+        existingJob.status === JobStatus.PENDING
+      ) {
+        console.log(
+          `🔄 [BILLING-JOB-SERVICE] Job already running/pending - returning existing job`,
+        );
         return existingJob as BillingJobResult;
       }
-      
+
       // If job failed, delete it to allow retry
       if (existingJob.status === JobStatus.FAILED) {
-        console.log(`🗑️ [BILLING-JOB-SERVICE] Deleting failed job to allow retry`);
+        console.log(
+          `🗑️ [BILLING-JOB-SERVICE] Deleting failed job to allow retry`,
+        );
         await this.prisma.billingJob.delete({
           where: { id: existingJob.id },
         });
@@ -396,9 +423,8 @@ export class BillingJobService {
       data: {
         status: JobStatus.CANCELLED,
         completedAt: new Date(),
-        errorMessage: 'Job cancelled by user',
+        errorMessage: "Job cancelled by user",
       },
     });
   }
 }
-

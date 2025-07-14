@@ -1,5 +1,5 @@
-import Decimal from 'decimal.js';
-import { Money } from '../types';
+import Decimal from "decimal.js";
+import { Money } from "../types";
 
 // Configure Decimal.js for financial precision
 Decimal.config({
@@ -16,7 +16,7 @@ Decimal.config({
 /**
  * Create a Money object from a string or number
  */
-export function createMoney(amount: string | number, currency = 'USD'): Money {
+export function createMoney(amount: string | number, currency = "USD"): Money {
   return {
     amount: new Decimal(amount),
     currency: currency.toUpperCase(),
@@ -28,9 +28,11 @@ export function createMoney(amount: string | number, currency = 'USD'): Money {
  */
 export function addMoney(a: Money, b: Money): Money {
   if (a.currency !== b.currency) {
-    throw new Error(`Cannot add different currencies: ${a.currency} and ${b.currency}`);
+    throw new Error(
+      `Cannot add different currencies: ${a.currency} and ${b.currency}`,
+    );
   }
-  
+
   return {
     amount: a.amount.add(b.amount),
     currency: a.currency,
@@ -42,9 +44,11 @@ export function addMoney(a: Money, b: Money): Money {
  */
 export function subtractMoney(a: Money, b: Money): Money {
   if (a.currency !== b.currency) {
-    throw new Error(`Cannot subtract different currencies: ${a.currency} and ${b.currency}`);
+    throw new Error(
+      `Cannot subtract different currencies: ${a.currency} and ${b.currency}`,
+    );
   }
-  
+
   return {
     amount: a.amount.sub(b.amount),
     currency: a.currency,
@@ -54,7 +58,10 @@ export function subtractMoney(a: Money, b: Money): Money {
 /**
  * Multiply Money by a number
  */
-export function multiplyMoney(money: Money, multiplier: string | number): Money {
+export function multiplyMoney(
+  money: Money,
+  multiplier: string | number,
+): Money {
   return {
     amount: money.amount.mul(new Decimal(multiplier)),
     currency: money.currency,
@@ -87,9 +94,11 @@ export function roundMoney(money: Money, decimalPlaces = 2): Money {
  */
 export function compareMoney(a: Money, b: Money): number {
   if (a.currency !== b.currency) {
-    throw new Error(`Cannot compare different currencies: ${a.currency} and ${b.currency}`);
+    throw new Error(
+      `Cannot compare different currencies: ${a.currency} and ${b.currency}`,
+    );
   }
-  
+
   return a.amount.comparedTo(b.amount);
 }
 
@@ -117,14 +126,14 @@ export function isNegativeMoney(money: Money): boolean {
 /**
  * Format Money for display
  */
-export function formatMoney(money: Money, locale = 'en-US'): string {
+export function formatMoney(money: Money, locale = "en-US"): string {
   const formatter = new Intl.NumberFormat(locale, {
-    style: 'currency',
+    style: "currency",
     currency: money.currency,
     minimumFractionDigits: 2,
     maximumFractionDigits: 4,
   });
-  
+
   return formatter.format(money.amount.toNumber());
 }
 
@@ -138,7 +147,10 @@ export function moneyToDecimalString(money: Money): string {
 /**
  * Create Money from database decimal string
  */
-export function moneyFromDecimalString(decimalString: string, currency = 'USD'): Money {
+export function moneyFromDecimalString(
+  decimalString: string,
+  currency = "USD",
+): Money {
   return {
     amount: new Decimal(decimalString),
     currency: currency.toUpperCase(),
@@ -148,7 +160,10 @@ export function moneyFromDecimalString(decimalString: string, currency = 'USD'):
 /**
  * Calculate percentage of Money
  */
-export function calculatePercentage(money: Money, percentage: string | number): Money {
+export function calculatePercentage(
+  money: Money,
+  percentage: string | number,
+): Money {
   const percent = new Decimal(percentage).div(100);
   return {
     amount: money.amount.mul(percent),
@@ -163,18 +178,19 @@ export function sumMoney(moneyArray: Money[]): Money {
   if (moneyArray.length === 0) {
     return createMoney(0);
   }
-  
+
   const currency = moneyArray[0].currency;
   const sum = moneyArray.reduce((acc, money) => {
     if (money.currency !== currency) {
-      throw new Error(`Cannot sum different currencies: ${currency} and ${money.currency}`);
+      throw new Error(
+        `Cannot sum different currencies: ${currency} and ${money.currency}`,
+      );
     }
     return acc.add(money.amount);
   }, new Decimal(0));
-  
+
   return {
     amount: sum,
     currency,
   };
 }
-

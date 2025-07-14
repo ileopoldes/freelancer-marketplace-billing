@@ -1,14 +1,21 @@
-import { Money, createMoney, divideMoney, multiplyMoney, subtractMoney, addMoney } from '@marketplace/shared';
-import { PrismaClient } from '@prisma/client';
+import {
+  Money,
+  createMoney,
+  divideMoney,
+  multiplyMoney,
+  subtractMoney,
+  addMoney,
+} from "@marketplace/shared";
+import { PrismaClient } from "@prisma/client";
 
 export interface SeatSubscription {
   entityId: string;
-  subscriptionType: 'MONTHLY' | 'ANNUAL';
+  subscriptionType: "MONTHLY" | "ANNUAL";
   seatCount: number;
   pricePerSeat: Money;
   totalPrice: Money;
   nextBillingDate: Date;
-  status: 'ACTIVE' | 'PAUSED' | 'CANCELED';
+  status: "ACTIVE" | "PAUSED" | "CANCELED";
 }
 
 export interface SeatChange {
@@ -43,9 +50,9 @@ export class SeatBasedPricer {
    */
   async createSubscription(
     entityId: string,
-    subscriptionType: 'MONTHLY' | 'ANNUAL',
+    subscriptionType: "MONTHLY" | "ANNUAL",
     seatCount: number,
-    pricePerSeat: Money
+    pricePerSeat: Money,
   ): Promise<SeatSubscription> {
     const totalPrice = multiplyMoney(pricePerSeat, seatCount);
     const nextBillingDate = this.calculateNextBillingDate(subscriptionType);
@@ -55,10 +62,12 @@ export class SeatBasedPricer {
         entityId,
         subscriptionType,
         seatCount,
-        monthlyPrice: subscriptionType === 'MONTHLY' ? totalPrice.amount.toNumber() : 0,
-        annualPrice: subscriptionType === 'ANNUAL' ? totalPrice.amount.toNumber() : 0,
+        monthlyPrice:
+          subscriptionType === "MONTHLY" ? totalPrice.amount.toNumber() : 0,
+        annualPrice:
+          subscriptionType === "ANNUAL" ? totalPrice.amount.toNumber() : 0,
         billingCycle: subscriptionType,
-        status: 'ACTIVE',
+        status: "ACTIVE",
         nextBillingDate,
       },
     });
@@ -70,7 +79,7 @@ export class SeatBasedPricer {
       pricePerSeat,
       totalPrice,
       nextBillingDate,
-      status: 'ACTIVE',
+      status: "ACTIVE",
     };
   }
 
@@ -83,10 +92,16 @@ export class SeatBasedPricer {
     pricePerSeat: Money,
     billingPeriodStart: Date,
     billingPeriodEnd: Date,
-    changeEffectiveDate: Date = new Date()
+    changeEffectiveDate: Date = new Date(),
   ): ProrationCalculation {
-    const daysInBillingPeriod = this.getDaysBetween(billingPeriodStart, billingPeriodEnd);
-    const daysRemaining = this.getDaysBetween(changeEffectiveDate, billingPeriodEnd);
+    const daysInBillingPeriod = this.getDaysBetween(
+      billingPeriodStart,
+      billingPeriodEnd,
+    );
+    const daysRemaining = this.getDaysBetween(
+      changeEffectiveDate,
+      billingPeriodEnd,
+    );
     const prorationFactor = daysRemaining / daysInBillingPeriod;
 
     const seatDifference = newSeatCount - currentSeatCount;
@@ -98,7 +113,10 @@ export class SeatBasedPricer {
       daysRemaining,
       prorationFactor,
       baseAmount,
-      prorationAmount: seatDifference >= 0 ? prorationAmount : subtractMoney(createMoney('0'), prorationAmount),
+      prorationAmount:
+        seatDifference >= 0
+          ? prorationAmount
+          : subtractMoney(createMoney("0"), prorationAmount),
     };
   }
 
@@ -108,10 +126,10 @@ export class SeatBasedPricer {
   async updateSeatCount(
     entityId: string,
     newSeatCount: number,
-    effectiveDate: Date = new Date()
+    effectiveDate: Date = new Date(),
   ): Promise<SeatChange> {
     const subscription = await this.prisma.entitySubscription.findFirst({
-      where: { entityId, status: 'ACTIVE' },
+      where: { entityId, status: "ACTIVE" },
     });
 
     if (!subscription) {
@@ -119,12 +137,12 @@ export class SeatBasedPricer {
     }
 
     const previousSeatCount = subscription.seatCount;
-    const pricePerSeat = createMoney('50.00'); // This should come from pricing configuration
+    const pricePerSeat = createMoney("50.00"); // This should come from pricing configuration
 
     // Calculate proration
     const billingPeriodStart = this.calculateBillingPeriodStart(
       subscription.nextBillingDate!,
-      subscription.billingCycle as 'MONTHLY' | 'ANNUAL'
+      subscription.billingCycle as "MONTHLY" | "ANNUAL",
     );
     const billingPeriodEnd = subscription.nextBillingDate!;
 
@@ -134,7 +152,7 @@ export class SeatBasedPricer {
       pricePerSeat,
       billingPeriodStart,
       billingPeriodEnd,
-      effectiveDate
+      effectiveDate,
     );
 
     // Update subscription
@@ -142,12 +160,14 @@ export class SeatBasedPricer {
       where: { id: subscription.id },
       data: {
         seatCount: newSeatCount,
-        monthlyPrice: subscription.billingCycle === 'MONTHLY' 
-          ? multiplyMoney(pricePerSeat, newSeatCount).amount.toNumber()
-          : subscription.monthlyPrice,
-        annualPrice: subscription.billingCycle === 'ANNUAL'
-          ? multiplyMoney(pricePerSeat, newSeatCount).amount.toNumber() * 12
-          : subscription.annualPrice,
+        monthlyPrice:
+          subscription.billingCycle === "MONTHLY"
+            ? multiplyMoney(pricePerSeat, newSeatCount).amount.toNumber()
+            : subscription.monthlyPrice,
+        annualPrice:
+          subscription.billingCycle === "ANNUAL"
+            ? multiplyMoney(pricePerSeat, newSeatCount).amount.toNumber() * 12
+            : subscription.annualPrice,
       },
     });
 
@@ -163,26 +183,28 @@ export class SeatBasedPricer {
   /**
    * Get current subscription for an entity
    */
-  async getEntitySubscription(entityId: string): Promise<SeatSubscription | null> {
+  async getEntitySubscription(
+    entityId: string,
+  ): Promise<SeatSubscription | null> {
     const subscription = await this.prisma.entitySubscription.findFirst({
-      where: { entityId, status: 'ACTIVE' },
+      where: { entityId, status: "ACTIVE" },
     });
 
     if (!subscription) {
       return null;
     }
 
-    const pricePerSeat = createMoney('50.00'); // This should come from pricing configuration
+    const pricePerSeat = createMoney("50.00"); // This should come from pricing configuration
     const totalPrice = multiplyMoney(pricePerSeat, subscription.seatCount);
 
     return {
       entityId,
-      subscriptionType: subscription.billingCycle as 'MONTHLY' | 'ANNUAL',
+      subscriptionType: subscription.billingCycle as "MONTHLY" | "ANNUAL",
       seatCount: subscription.seatCount,
       pricePerSeat,
       totalPrice,
       nextBillingDate: subscription.nextBillingDate!,
-      status: subscription.status as 'ACTIVE' | 'PAUSED' | 'CANCELED',
+      status: subscription.status as "ACTIVE" | "PAUSED" | "CANCELED",
     };
   }
 
@@ -193,7 +215,7 @@ export class SeatBasedPricer {
     const activeUsers = await this.prisma.entityUser.count({
       where: {
         entityId,
-        status: 'ACTIVE',
+        status: "ACTIVE",
       },
     });
 
@@ -213,7 +235,8 @@ export class SeatBasedPricer {
     const activeUsers = await this.getRecommendedSeatCount(entityId);
 
     const allocatedSeats = subscription?.seatCount || 0;
-    const utilizationPercentage = allocatedSeats > 0 ? (activeUsers / allocatedSeats) * 100 : 0;
+    const utilizationPercentage =
+      allocatedSeats > 0 ? (activeUsers / allocatedSeats) * 100 : 0;
     const overAllocated = activeUsers > allocatedSeats;
 
     return {
@@ -224,11 +247,13 @@ export class SeatBasedPricer {
     };
   }
 
-  private calculateNextBillingDate(subscriptionType: 'MONTHLY' | 'ANNUAL'): Date {
+  private calculateNextBillingDate(
+    subscriptionType: "MONTHLY" | "ANNUAL",
+  ): Date {
     const now = new Date();
     const nextBilling = new Date(now);
 
-    if (subscriptionType === 'MONTHLY') {
+    if (subscriptionType === "MONTHLY") {
       nextBilling.setMonth(nextBilling.getMonth() + 1);
     } else {
       nextBilling.setFullYear(nextBilling.getFullYear() + 1);
@@ -237,10 +262,13 @@ export class SeatBasedPricer {
     return nextBilling;
   }
 
-  private calculateBillingPeriodStart(nextBillingDate: Date, billingCycle: 'MONTHLY' | 'ANNUAL'): Date {
+  private calculateBillingPeriodStart(
+    nextBillingDate: Date,
+    billingCycle: "MONTHLY" | "ANNUAL",
+  ): Date {
     const periodStart = new Date(nextBillingDate);
 
-    if (billingCycle === 'MONTHLY') {
+    if (billingCycle === "MONTHLY") {
       periodStart.setMonth(periodStart.getMonth() - 1);
     } else {
       periodStart.setFullYear(periodStart.getFullYear() - 1);
@@ -254,4 +282,3 @@ export class SeatBasedPricer {
     return Math.ceil(timeDifference / (1000 * 3600 * 24));
   }
 }
-

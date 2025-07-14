@@ -1,9 +1,9 @@
 // Jest setup file for backend tests
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 // Configure test environment
-process.env.NODE_ENV = 'test';
-process.env.LOG_LEVEL = 'silent';
+process.env.NODE_ENV = "test";
+process.env.LOG_LEVEL = "silent";
 
 // Mock console methods to reduce test output noise
 global.console = {
@@ -21,10 +21,10 @@ global.testUtils = {
   createTestDate: (year: number, month: number, day: number) => {
     return new Date(year, month - 1, day); // month is 0-indexed
   },
-  
+
   // Helper to format dates for comparison
   formatDate: (date: Date) => {
-    return date.toISOString().split('T')[0];
+    return date.toISOString().split("T")[0];
   },
 };
 
@@ -44,18 +44,20 @@ expect.extend({
       };
     }
   },
-  
+
   toBeWithinSeconds(received: Date, expected: Date, seconds: number = 1) {
     const diff = Math.abs(received.getTime() - expected.getTime());
     const pass = diff <= seconds * 1000;
     if (pass) {
       return {
-        message: () => `expected ${received} not to be within ${seconds} seconds of ${expected}`,
+        message: () =>
+          `expected ${received} not to be within ${seconds} seconds of ${expected}`,
         pass: true,
       };
     } else {
       return {
-        message: () => `expected ${received} to be within ${seconds} seconds of ${expected}`,
+        message: () =>
+          `expected ${received} to be within ${seconds} seconds of ${expected}`,
         pass: false,
       };
     }
@@ -70,10 +72,9 @@ declare global {
       toBeWithinSeconds(expected: Date, seconds?: number): R;
     }
   }
-  
+
   var testUtils: {
     createTestDate: (year: number, month: number, day: number) => Date;
     formatDate: (date: Date) => string;
   };
 }
-

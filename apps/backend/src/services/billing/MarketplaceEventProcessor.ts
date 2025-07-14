@@ -1,17 +1,20 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 import {
   Money,
   createMoney,
   addMoney,
   moneyToDecimalString,
-} from '@marketplace/shared';
-import { PayAsYouGoPricer, PayAsYouGoCalculation } from '../pricing/PayAsYouGoPricer';
-import { CreditPackageManager } from './CreditPackageManager';
+} from "@marketplace/shared";
+import {
+  PayAsYouGoPricer,
+  PayAsYouGoCalculation,
+} from "../pricing/PayAsYouGoPricer";
+import { CreditPackageManager } from "./CreditPackageManager";
 
 export interface MarketplaceEventRequest {
   entityId: string;
   userId: string;
-  eventType: 'project_posted' | 'freelancer_hired' | 'custom';
+  eventType: "project_posted" | "freelancer_hired" | "custom";
   quantity: number;
   metadata?: Record<string, any>;
 }
@@ -20,7 +23,7 @@ export interface EventProcessingResult {
   success: boolean;
   eventId: string;
   calculation: PayAsYouGoCalculation;
-  billingMethod: 'CREDITS' | 'INVOICE';
+  billingMethod: "CREDITS" | "INVOICE";
   creditDeduction?: {
     deductedAmount: Money;
     remainingBalance: Money;
@@ -53,7 +56,7 @@ export class MarketplaceEventProcessor {
    */
   async processEvent(
     eventRequest: MarketplaceEventRequest,
-    options: EventProcessingOptions = {}
+    options: EventProcessingOptions = {},
   ): Promise<EventProcessingResult> {
     // 1. Validate the event request
     await this.validateEventRequest(eventRequest);
@@ -62,7 +65,7 @@ export class MarketplaceEventProcessor {
     const calculation = await this.payAsYouGoPricer.calculateEventPricing(
       eventRequest.entityId,
       eventRequest.eventType,
-      eventRequest.quantity
+      eventRequest.quantity,
     );
 
     // 3. Store the marketplace event
@@ -72,31 +75,42 @@ export class MarketplaceEventProcessor {
         userId: eventRequest.userId,
         eventType: eventRequest.eventType,
         quantity: eventRequest.quantity,
-        unitPrice: calculation.finalAmount.amount.div(eventRequest.quantity).toNumber(),
+        unitPrice: calculation.finalAmount.amount
+          .div(eventRequest.quantity)
+          .toNumber(),
         metadata: eventRequest.metadata || {},
       },
     });
 
     // 4. Determine billing method (credits vs invoice)
     if (!options.forceInvoicing) {
-      const creditBalance = await this.creditPackageManager.getEntityCreditBalance(eventRequest.entityId);
-      
-      if (creditBalance && creditBalance.availableCredits.amount.greaterThanOrEqualTo(calculation.finalAmount.amount)) {
-        // Try to deduct from credits
-        const deductionResult = await this.creditPackageManager.deductCreditsForEvent(
+      const creditBalance =
+        await this.creditPackageManager.getEntityCreditBalance(
           eventRequest.entityId,
-          eventRequest.userId,
-          eventRequest.eventType,
-          calculation.finalAmount,
-          `${eventRequest.eventType} event processing`
         );
+
+      if (
+        creditBalance &&
+        creditBalance.availableCredits.amount.greaterThanOrEqualTo(
+          calculation.finalAmount.amount,
+        )
+      ) {
+        // Try to deduct from credits
+        const deductionResult =
+          await this.creditPackageManager.deductCreditsForEvent(
+            eventRequest.entityId,
+            eventRequest.userId,
+            eventRequest.eventType,
+            calculation.finalAmount,
+            `${eventRequest.eventType} event processing`,
+          );
 
         if (deductionResult.success) {
           return {
             success: true,
             eventId: marketplaceEvent.id,
             calculation,
-            billingMethod: 'CREDITS',
+            billingMethod: "CREDITS",
             creditDeduction: {
               deductedAmount: deductionResult.deductedAmount,
               remainingBalance: deductionResult.remainingBalance,
@@ -108,7 +122,7 @@ export class MarketplaceEventProcessor {
             success: true,
             eventId: marketplaceEvent.id,
             calculation,
-            billingMethod: 'INVOICE',
+            billingMethod: "INVOICE",
             reason: `Credit deduction failed: ${deductionResult.reason}`,
           };
         }
@@ -120,8 +134,10 @@ export class MarketplaceEventProcessor {
       success: true,
       eventId: marketplaceEvent.id,
       calculation,
-      billingMethod: 'INVOICE',
-      reason: options.forceInvoicing ? 'Forced invoicing' : 'Insufficient credits',
+      billingMethod: "INVOICE",
+      reason: options.forceInvoicing
+        ? "Forced invoicing"
+        : "Insufficient credits",
     };
   }
 
@@ -130,7 +146,7 @@ export class MarketplaceEventProcessor {
    */
   async processBatchEvents(
     events: MarketplaceEventRequest[],
-    options: EventProcessingOptions = {}
+    options: EventProcessingOptions = {},
   ): Promise<EventProcessingResult[]> {
     const results: EventProcessingResult[] = [];
 
@@ -141,16 +157,16 @@ export class MarketplaceEventProcessor {
       } catch (error) {
         results.push({
           success: false,
-          eventId: '',
+          eventId: "",
           calculation: {
             eventType: event.eventType,
             quantity: event.quantity,
-            baseAmount: createMoney('0'),
-            discountApplied: createMoney('0'),
-            finalAmount: createMoney('0'),
+            baseAmount: createMoney("0"),
+            discountApplied: createMoney("0"),
+            finalAmount: createMoney("0"),
           },
-          billingMethod: 'INVOICE',
-          reason: error instanceof Error ? error.message : 'Unknown error',
+          billingMethod: "INVOICE",
+          reason: error instanceof Error ? error.message : "Unknown error",
         });
       }
     }
@@ -165,7 +181,7 @@ export class MarketplaceEventProcessor {
     entityId: string,
     fromDate: Date,
     toDate: Date,
-    eventType?: string
+    eventType?: string,
   ): Promise<any[]> {
     return this.prisma.marketplaceEvent.findMany({
       where: {
@@ -186,7 +202,7 @@ export class MarketplaceEventProcessor {
         },
       },
       orderBy: {
-        timestamp: 'desc',
+        timestamp: "desc",
       },
     });
   }
@@ -197,7 +213,7 @@ export class MarketplaceEventProcessor {
   async getBillingSummary(
     entityId: string,
     fromDate: Date,
-    toDate: Date
+    toDate: Date,
   ): Promise<{
     totalEvents: number;
     totalCost: Money;
@@ -212,34 +228,39 @@ export class MarketplaceEventProcessor {
     };
   }> {
     const events = await this.getEventHistory(entityId, fromDate, toDate);
-    
-    const totalEvents = events.length;
-    const eventGroups = events.reduce((acc, event) => {
-      if (!acc[event.eventType]) {
-        acc[event.eventType] = { count: 0, totalCost: createMoney('0') };
-      }
-      acc[event.eventType].count += event.quantity;
-      acc[event.eventType].totalCost = addMoney(
-        acc[event.eventType].totalCost,
-        createMoney((event.unitPrice * event.quantity).toString())
-      );
-      return acc;
-    }, {} as Record<string, { count: number; totalCost: Money }>);
 
-    const eventBreakdown = Object.entries(eventGroups).map(([eventType, data]) => ({
-      eventType,
-      count: data.count,
-      totalCost: data.totalCost,
-    }));
+    const totalEvents = events.length;
+    const eventGroups = events.reduce(
+      (acc, event) => {
+        if (!acc[event.eventType]) {
+          acc[event.eventType] = { count: 0, totalCost: createMoney("0") };
+        }
+        acc[event.eventType].count += event.quantity;
+        acc[event.eventType].totalCost = addMoney(
+          acc[event.eventType].totalCost,
+          createMoney((event.unitPrice * event.quantity).toString()),
+        );
+        return acc;
+      },
+      {} as Record<string, { count: number; totalCost: Money }>,
+    );
+
+    const eventBreakdown = Object.entries(eventGroups).map(
+      ([eventType, data]) => ({
+        eventType,
+        count: (data as { count: number; totalCost: Money }).count,
+        totalCost: (data as { count: number; totalCost: Money }).totalCost,
+      }),
+    );
 
     const totalCost = eventBreakdown.reduce(
       (sum, event) => addMoney(sum, event.totalCost),
-      createMoney('0')
+      createMoney("0"),
     );
 
     // Note: This is simplified - in a real implementation, you'd track billing method per event
     const billingMethodBreakdown = {
-      creditsBilled: createMoney('0'), // Would be calculated based on actual billing records
+      creditsBilled: createMoney("0"), // Would be calculated based on actual billing records
       invoicesBilled: totalCost, // Simplified assumption
     };
 
@@ -260,25 +281,34 @@ export class MarketplaceEventProcessor {
     creditBalance: Money;
     recommendedAction: string;
   }> {
-    const creditBalance = await this.creditPackageManager.getEntityCreditBalance(entityId);
-    const currentBalance = creditBalance?.availableCredits || createMoney('0');
+    const creditBalance =
+      await this.creditPackageManager.getEntityCreditBalance(entityId);
+    const currentBalance = creditBalance?.availableCredits || createMoney("0");
 
     // Check if credits are running low (less than $50)
-    const lowBalanceThreshold = createMoney('50.00');
-    const hasOverage = currentBalance.amount.lessThan(lowBalanceThreshold.amount);
+    const lowBalanceThreshold = createMoney("50.00");
+    const hasOverage = currentBalance.amount.lessThan(
+      lowBalanceThreshold.amount,
+    );
 
-    let recommendedAction = 'No action needed';
+    let recommendedAction = "No action needed";
     if (hasOverage) {
       if (currentBalance.amount.lessThanOrEqualTo(0)) {
-        recommendedAction = 'Purchase credits immediately - account will be billed for future events';
+        recommendedAction =
+          "Purchase credits immediately - account will be billed for future events";
       } else {
-        recommendedAction = 'Consider purchasing additional credits to avoid billing delays';
+        recommendedAction =
+          "Consider purchasing additional credits to avoid billing delays";
       }
     }
 
     return {
       hasOverage,
-      overageAmount: hasOverage ? createMoney(lowBalanceThreshold.amount.minus(currentBalance.amount).toString()) : createMoney('0'),
+      overageAmount: hasOverage
+        ? createMoney(
+            lowBalanceThreshold.amount.minus(currentBalance.amount).toString(),
+          )
+        : createMoney("0"),
       creditBalance: currentBalance,
       recommendedAction,
     };
@@ -287,7 +317,9 @@ export class MarketplaceEventProcessor {
   /**
    * Validate event request before processing
    */
-  private async validateEventRequest(eventRequest: MarketplaceEventRequest): Promise<void> {
+  private async validateEventRequest(
+    eventRequest: MarketplaceEventRequest,
+  ): Promise<void> {
     // Validate entity exists
     const entity = await this.prisma.entity.findUnique({
       where: { id: eventRequest.entityId },
@@ -302,21 +334,23 @@ export class MarketplaceEventProcessor {
       where: {
         entityId: eventRequest.entityId,
         userId: eventRequest.userId,
-        status: 'ACTIVE',
+        status: "ACTIVE",
       },
     });
 
     if (!entityUser) {
-      throw new Error(`User ${eventRequest.userId} is not an active member of entity ${eventRequest.entityId}`);
+      throw new Error(
+        `User ${eventRequest.userId} is not an active member of entity ${eventRequest.entityId}`,
+      );
     }
 
     // Validate event quantity
     if (eventRequest.quantity <= 0) {
-      throw new Error('Event quantity must be greater than zero');
+      throw new Error("Event quantity must be greater than zero");
     }
 
     // Validate event type
-    const validEventTypes = ['project_posted', 'freelancer_hired', 'custom'];
+    const validEventTypes = ["project_posted", "freelancer_hired", "custom"];
     if (!validEventTypes.includes(eventRequest.eventType)) {
       throw new Error(`Invalid event type: ${eventRequest.eventType}`);
     }

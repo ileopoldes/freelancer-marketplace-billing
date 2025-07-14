@@ -1,48 +1,48 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useBillingJobs, useRunBilling } from '@/hooks/api'
-import { formatCurrency, formatDateTime, getStatusColor } from '@/lib/utils'
-import type { BillingJob } from '@/lib/api'
+import { useState } from "react";
+import { useBillingJobs, useRunBilling } from "@/hooks/api";
+import { formatCurrency, formatDateTime, getStatusColor } from "@/lib/utils";
+import type { BillingJob } from "@/lib/api";
 
 export function BillingJobControl() {
-  const { data: billingJobs = [], isLoading, isError } = useBillingJobs()
-  const runBillingMutation = useRunBilling()
-  const [asOfDate, setAsOfDate] = useState('')
-  const [isRunning, setIsRunning] = useState(false)
+  const { data: billingJobs = [], isLoading, isError } = useBillingJobs();
+  const runBillingMutation = useRunBilling();
+  const [asOfDate, setAsOfDate] = useState("");
+  const [isRunning, setIsRunning] = useState(false);
 
   const handleRunBilling = async () => {
-    if (isRunning) return
-    
-    setIsRunning(true)
+    if (isRunning) return;
+
+    setIsRunning(true);
     try {
-      await runBillingMutation.mutateAsync(asOfDate || undefined)
+      await runBillingMutation.mutateAsync(asOfDate || undefined);
     } catch (error) {
-      console.error('Failed to run billing:', error)
+      console.error("Failed to run billing:", error);
     } finally {
-      setIsRunning(false)
+      setIsRunning(false);
     }
-  }
+  };
 
   // Sort jobs by creation date (newest first)
   const sortedJobs = [...billingJobs].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  )
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
 
   const getJobStatusIcon = (status: string) => {
     switch (status) {
-      case 'PENDING':
-        return '🕒'
-      case 'RUNNING':
-        return '⚡'
-      case 'COMPLETED':
-        return '✅'
-      case 'FAILED':
-        return '❌'
+      case "PENDING":
+        return "🕒";
+      case "RUNNING":
+        return "⚡";
+      case "COMPLETED":
+        return "✅";
+      case "FAILED":
+        return "❌";
       default:
-        return '❓'
+        return "❓";
     }
-  }
+  };
 
   if (isLoading) {
     return (
@@ -56,29 +56,42 @@ export function BillingJobControl() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   if (isError) {
     return (
       <div className="card p-6 border-error-200 bg-error-50">
-        <p className="text-error-700">Failed to load billing jobs. Please try again.</p>
+        <p className="text-error-700">
+          Failed to load billing jobs. Please try again.
+        </p>
       </div>
-    )
+    );
   }
 
-  const runningJobs = billingJobs.filter(job => job.status === 'RUNNING').length
-  const completedJobs = billingJobs.filter(job => job.status === 'COMPLETED').length
-  const failedJobs = billingJobs.filter(job => job.status === 'FAILED').length
+  const runningJobs = billingJobs.filter(
+    (job) => job.status === "RUNNING",
+  ).length;
+  const completedJobs = billingJobs.filter(
+    (job) => job.status === "COMPLETED",
+  ).length;
+  const failedJobs = billingJobs.filter(
+    (job) => job.status === "FAILED",
+  ).length;
 
   return (
     <div className="space-y-6">
       {/* Billing Control */}
       <div className="card p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Run Billing Job</h3>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">
+          Run Billing Job
+        </h3>
         <div className="flex flex-col sm:flex-row sm:items-end sm:space-x-4 space-y-4 sm:space-y-0">
           <div className="flex-1">
-            <label htmlFor="asOfDate" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="asOfDate"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               As Of Date (optional)
             </label>
             <input
@@ -98,8 +111,8 @@ export function BillingJobControl() {
             disabled={isRunning || runBillingMutation.isPending}
             className={`btn ${
               isRunning || runBillingMutation.isPending
-                ? 'btn-secondary cursor-not-allowed'
-                : 'btn-primary'
+                ? "btn-secondary cursor-not-allowed"
+                : "btn-primary"
             }`}
           >
             {isRunning || runBillingMutation.isPending ? (
@@ -108,11 +121,11 @@ export function BillingJobControl() {
                 Running Billing...
               </>
             ) : (
-              'Run Billing Job'
+              "Run Billing Job"
             )}
           </button>
         </div>
-        
+
         {runBillingMutation.isError && (
           <div className="mt-4 p-3 bg-error-50 border border-error-200 rounded-md">
             <p className="text-sm text-error-700">
@@ -120,11 +133,12 @@ export function BillingJobControl() {
             </p>
           </div>
         )}
-        
+
         {runBillingMutation.isSuccess && (
           <div className="mt-4 p-3 bg-success-50 border border-success-200 rounded-md">
             <p className="text-sm text-success-700">
-              Billing job started successfully! Check the job list below for progress.
+              Billing job started successfully! Check the job list below for
+              progress.
             </p>
           </div>
         )}
@@ -134,7 +148,9 @@ export function BillingJobControl() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="card p-6">
           <h3 className="text-sm font-medium text-gray-500">Total Jobs</h3>
-          <p className="text-2xl font-bold text-gray-900">{billingJobs.length}</p>
+          <p className="text-2xl font-bold text-gray-900">
+            {billingJobs.length}
+          </p>
         </div>
         <div className="card p-6">
           <h3 className="text-sm font-medium text-gray-500">Running Jobs</h3>
@@ -153,7 +169,9 @@ export function BillingJobControl() {
       {/* Job History */}
       <div className="card">
         <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Billing Job History</h3>
+          <h3 className="text-lg font-medium text-gray-900">
+            Billing Job History
+          </h3>
           <p className="mt-1 text-sm text-gray-500">
             Real-time updates every 5 seconds for running jobs
           </p>
@@ -161,7 +179,8 @@ export function BillingJobControl() {
 
         {sortedJobs.length === 0 ? (
           <div className="p-6 text-center text-gray-500">
-            No billing jobs found. Click "Run Billing Job" to start your first job.
+            No billing jobs found. Click &quot;Run Billing Job&quot; to start your first
+            job.
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -197,14 +216,18 @@ export function BillingJobControl() {
                     </td>
                     <td className="text-center">
                       {job.contractsProcessed !== undefined ? (
-                        <span className="font-medium">{job.contractsProcessed}</span>
+                        <span className="font-medium">
+                          {job.contractsProcessed}
+                        </span>
                       ) : (
                         <span className="text-gray-400">-</span>
                       )}
                     </td>
                     <td className="text-center">
                       {job.invoicesGenerated !== undefined ? (
-                        <span className="font-medium">{job.invoicesGenerated}</span>
+                        <span className="font-medium">
+                          {job.invoicesGenerated}
+                        </span>
                       ) : (
                         <span className="text-gray-400">-</span>
                       )}
@@ -233,25 +256,30 @@ export function BillingJobControl() {
       </div>
 
       {/* Error Messages */}
-      {sortedJobs.some(job => job.status === 'FAILED' && job.errorMessage) && (
+      {sortedJobs.some(
+        (job) => job.status === "FAILED" && job.errorMessage,
+      ) && (
         <div className="card p-6 border-error-200 bg-error-50">
-          <h3 className="text-lg font-medium text-error-800 mb-4">Recent Errors</h3>
+          <h3 className="text-lg font-medium text-error-800 mb-4">
+            Recent Errors
+          </h3>
           <div className="space-y-2">
             {sortedJobs
-              .filter(job => job.status === 'FAILED' && job.errorMessage)
+              .filter((job) => job.status === "FAILED" && job.errorMessage)
               .slice(0, 3)
               .map((job) => (
                 <div key={job.id} className="text-sm">
                   <span className="font-medium text-error-700">
                     Job {job.id.substring(0, 8)}:
                   </span>
-                  <span className="text-error-600 ml-2">{job.errorMessage}</span>
+                  <span className="text-error-600 ml-2">
+                    {job.errorMessage}
+                  </span>
                 </div>
               ))}
           </div>
         </div>
       )}
     </div>
-  )
+  );
 }
-

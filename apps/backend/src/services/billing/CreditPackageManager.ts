@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 import {
   Money,
   createMoney,
@@ -7,7 +7,7 @@ import {
   moneyFromDecimalString,
   moneyToDecimalString,
   CreditType,
-} from '@marketplace/shared';
+} from "@marketplace/shared";
 
 export interface CreditApplication {
   creditId: string;
@@ -29,8 +29,8 @@ export interface CreditRule {
 }
 
 export interface CreditCondition {
-  field: 'customer_type' | 'invoice_amount' | 'credit_age' | 'billing_cycle';
-  operator: 'eq' | 'gte' | 'lte' | 'gt' | 'lt' | 'in';
+  field: "customer_type" | "invoice_amount" | "credit_age" | "billing_cycle";
+  operator: "eq" | "gte" | "lte" | "gt" | "lt" | "in";
   value: any;
 }
 
@@ -96,21 +96,23 @@ export class CreditPackageManager {
   private initializeDefaultRules(): void {
     // FIFO rule - apply oldest credits first
     this.addRule({
-      id: 'fifo',
-      name: 'First In, First Out',
+      id: "fifo",
+      name: "First In, First Out",
       priority: 1,
     });
 
     // Promotional credits expire first
     this.addRule({
-      id: 'promotional_first',
-      name: 'Apply Promotional Credits First',
+      id: "promotional_first",
+      name: "Apply Promotional Credits First",
       priority: 0,
-      conditions: [{
-        field: 'credit_age',
-        operator: 'gte',
-        value: 0,
-      }],
+      conditions: [
+        {
+          field: "credit_age",
+          operator: "gte",
+          value: 0,
+        },
+      ],
     });
   }
 
@@ -122,7 +124,7 @@ export class CreditPackageManager {
   async purchaseCreditPackage(
     entityId: string,
     packageId: string,
-    purchasedBy: string
+    purchasedBy: string,
   ): Promise<CreditPackagePurchase> {
     // Get the credit package details
     const creditPackage = await this.prisma.creditPackage.findUnique({
@@ -133,9 +135,13 @@ export class CreditPackageManager {
       throw new Error(`Credit package ${packageId} not found or inactive`);
     }
 
-    const creditsAmount = moneyFromDecimalString(creditPackage.creditsAmount.toString());
+    const creditsAmount = moneyFromDecimalString(
+      creditPackage.creditsAmount.toString(),
+    );
     const price = moneyFromDecimalString(creditPackage.price.toString());
-    const expiresAt = new Date(Date.now() + creditPackage.validityDays * 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(
+      Date.now() + creditPackage.validityDays * 24 * 60 * 60 * 1000,
+    );
 
     // Create or update entity credit balance
     const existingBalance = await this.prisma.entityCreditBalance.findFirst({
@@ -178,7 +184,9 @@ export class CreditPackageManager {
   /**
    * Get credit balance for an entity
    */
-  async getEntityCreditBalance(entityId: string): Promise<EntityCreditBalance | null> {
+  async getEntityCreditBalance(
+    entityId: string,
+  ): Promise<EntityCreditBalance | null> {
     const balance = await this.prisma.entityCreditBalance.findFirst({
       where: { entityId },
     });
@@ -187,7 +195,9 @@ export class CreditPackageManager {
       return null;
     }
 
-    const totalCredits = moneyFromDecimalString(balance.totalCredits.toString());
+    const totalCredits = moneyFromDecimalString(
+      balance.totalCredits.toString(),
+    );
     const usedCredits = moneyFromDecimalString(balance.usedCredits.toString());
     const availableCredits = subtractMoney(totalCredits, usedCredits);
 
@@ -208,16 +218,16 @@ export class CreditPackageManager {
     userId: string,
     eventType: string,
     creditAmount: Money,
-    reason: string
+    reason: string,
   ): Promise<CreditDeductionResult> {
     const balance = await this.getEntityCreditBalance(entityId);
 
     if (!balance) {
       return {
         success: false,
-        deductedAmount: createMoney('0'),
-        remainingBalance: createMoney('0'),
-        reason: 'No credit balance found for entity',
+        deductedAmount: createMoney("0"),
+        remainingBalance: createMoney("0"),
+        reason: "No credit balance found for entity",
       };
     }
 
@@ -225,9 +235,9 @@ export class CreditPackageManager {
     if (balance.availableCredits.amount.lessThan(creditAmount.amount)) {
       return {
         success: false,
-        deductedAmount: createMoney('0'),
+        deductedAmount: createMoney("0"),
         remainingBalance: balance.availableCredits,
-        reason: 'Insufficient credits',
+        reason: "Insufficient credits",
       };
     }
 
@@ -237,20 +247,29 @@ export class CreditPackageManager {
     });
 
     if (entityUser) {
-      const userCreditLimit = moneyFromDecimalString(entityUser.creditLimit.toString());
-      if (userCreditLimit.amount.greaterThan(0) && creditAmount.amount.greaterThan(userCreditLimit.amount)) {
+      const userCreditLimit = moneyFromDecimalString(
+        entityUser.creditLimit.toString(),
+      );
+      if (
+        userCreditLimit.amount.greaterThan(0) &&
+        creditAmount.amount.greaterThan(userCreditLimit.amount)
+      ) {
         return {
           success: false,
-          deductedAmount: createMoney('0'),
+          deductedAmount: createMoney("0"),
           remainingBalance: balance.availableCredits,
-          reason: 'Credit amount exceeds user limit',
+          reason: "Credit amount exceeds user limit",
         };
       }
     }
 
     // Deduct credits
     await this.prisma.entityCreditBalance.update({
-      where: { id: (await this.prisma.entityCreditBalance.findFirst({ where: { entityId } }))!.id },
+      where: {
+        id: (await this.prisma.entityCreditBalance.findFirst({
+          where: { entityId },
+        }))!.id,
+      },
       data: {
         usedCredits: {
           increment: creditAmount.amount.toNumber(),
@@ -258,7 +277,10 @@ export class CreditPackageManager {
       },
     });
 
-    const newRemainingBalance = subtractMoney(balance.availableCredits, creditAmount);
+    const newRemainingBalance = subtractMoney(
+      balance.availableCredits,
+      creditAmount,
+    );
 
     return {
       success: true,
@@ -273,7 +295,7 @@ export class CreditPackageManager {
   async getAvailableCreditPackages(): Promise<any[]> {
     return this.prisma.creditPackage.findMany({
       where: { active: true },
-      orderBy: { price: 'asc' },
+      orderBy: { price: "asc" },
     });
   }
 
@@ -282,7 +304,7 @@ export class CreditPackageManager {
    */
   async getExpiringCredits(entityId: string): Promise<boolean> {
     const balance = await this.getEntityCreditBalance(entityId);
-    
+
     if (!balance || !balance.expiresAt) {
       return false;
     }
@@ -312,22 +334,23 @@ export class CreditPackageManager {
     customerId: string,
     invoiceAmount: Money,
     invoiceId?: string,
-    lineTypes?: string[]
+    lineTypes?: string[],
   ): Promise<CreditApplicationResult> {
     // Get available credits for the customer
     const availableCredits = await this.getAvailableCredits(customerId);
-    
+
     // Remove expired credits
-    const { validCredits, expiredCredits } = this.filterExpiredCredits(availableCredits);
-    
+    const { validCredits, expiredCredits } =
+      this.filterExpiredCredits(availableCredits);
+
     // Mark expired credits in database
     if (expiredCredits.length > 0) {
-      await this.markCreditsAsExpired(expiredCredits.map(c => c.id));
+      await this.markCreditsAsExpired(expiredCredits.map((c) => c.id));
     }
 
     // Sort credits according to application rules
     const sortedCredits = this.sortCreditsByRules(validCredits);
-    
+
     let remainingInvoiceAmount = invoiceAmount;
     const applications: CreditApplication[] = [];
     const unusedCredits: string[] = [];
@@ -346,7 +369,9 @@ export class CreditPackageManager {
 
       const creditAmount = moneyFromDecimalString(credit.amount);
       const applicableAmount = {
-        amount: creditAmount.amount.lessThanOrEqualTo(remainingInvoiceAmount.amount)
+        amount: creditAmount.amount.lessThanOrEqualTo(
+          remainingInvoiceAmount.amount,
+        )
           ? creditAmount.amount
           : remainingInvoiceAmount.amount,
         currency: creditAmount.currency,
@@ -361,24 +386,32 @@ export class CreditPackageManager {
       };
 
       applications.push(application);
-      remainingInvoiceAmount = subtractMoney(remainingInvoiceAmount, applicableAmount);
+      remainingInvoiceAmount = subtractMoney(
+        remainingInvoiceAmount,
+        applicableAmount,
+      );
 
       // Mark credit as applied or partially applied
       if (invoiceId) {
-        await this.markCreditAsApplied(credit.id, applicableAmount, invoiceId, application.fullyConsumed);
+        await this.markCreditAsApplied(
+          credit.id,
+          applicableAmount,
+          invoiceId,
+          application.fullyConsumed,
+        );
       }
     }
 
     const totalCreditsApplied = applications.reduce(
       (total, app) => addMoney(total, app.appliedAmount),
-      createMoney('0', invoiceAmount.currency)
+      createMoney("0", invoiceAmount.currency),
     );
 
     return {
       totalCreditsApplied,
       applications,
       remainingInvoiceAmount,
-      expiredCredits: expiredCredits.map(c => c.id),
+      expiredCredits: expiredCredits.map((c) => c.id),
       unusedCredits,
     };
   }
@@ -392,7 +425,7 @@ export class CreditPackageManager {
     type: CreditType,
     description: string,
     expirationDays?: number,
-    metadata?: Record<string, any>
+    metadata?: Record<string, any>,
   ): Promise<any> {
     const expiresAt = expirationDays
       ? new Date(Date.now() + expirationDays * 24 * 60 * 60 * 1000)
@@ -416,13 +449,13 @@ export class CreditPackageManager {
   async getCreditBalance(customerId: string): Promise<CreditBalance> {
     const credits = await this.prisma.credit.findMany({
       where: { customerId },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: "asc" },
     });
 
-    let totalAvailable = createMoney('0');
-    let totalApplied = createMoney('0');
-    let totalExpired = createMoney('0');
-    const breakdown: CreditBalance['breakdown'] = [];
+    let totalAvailable = createMoney("0");
+    let totalApplied = createMoney("0");
+    let totalExpired = createMoney("0");
+    const breakdown: CreditBalance["breakdown"] = [];
 
     for (const credit of credits) {
       const amount = moneyFromDecimalString(credit.amount.toString());
@@ -441,7 +474,8 @@ export class CreditPackageManager {
         creditId: credit.id,
         type: credit.type as CreditType,
         amount,
-        remainingAmount: isApplied || isExpired ? createMoney('0', amount.currency) : amount,
+        remainingAmount:
+          isApplied || isExpired ? createMoney("0", amount.currency) : amount,
         expiresAt: credit.expiresAt || undefined,
         appliedAt: credit.appliedAt || undefined,
       });
@@ -462,7 +496,7 @@ export class CreditPackageManager {
     customerId: string,
     refundAmount: Money,
     originalInvoiceId: string,
-    reason: string
+    reason: string,
   ): Promise<any> {
     return this.createCredit(
       customerId,
@@ -474,7 +508,7 @@ export class CreditPackageManager {
         originalInvoiceId,
         refundReason: reason,
         issuedAt: new Date().toISOString(),
-      }
+      },
     );
   }
 
@@ -485,7 +519,7 @@ export class CreditPackageManager {
     customerId: string,
     creditAmount: Money,
     promotionName: string,
-    expirationDays: number = 90
+    expirationDays: number = 90,
   ): Promise<any> {
     return this.createCredit(
       customerId,
@@ -496,7 +530,7 @@ export class CreditPackageManager {
       {
         promotionName,
         issuedAt: new Date().toISOString(),
-      }
+      },
     );
   }
 
@@ -507,7 +541,7 @@ export class CreditPackageManager {
     fromCustomerId: string,
     toCustomerId: string,
     amount: Money,
-    reason: string
+    reason: string,
   ): Promise<{ debitCredit: any; creditCredit: any }> {
     // Create negative credit for source customer
     const debitCredit = await this.createCredit(
@@ -519,7 +553,7 @@ export class CreditPackageManager {
       {
         transferTo: toCustomerId,
         transferReason: reason,
-      }
+      },
     );
 
     // Create positive credit for destination customer
@@ -532,7 +566,7 @@ export class CreditPackageManager {
       {
         transferFrom: fromCustomerId,
         transferReason: reason,
-      }
+      },
     );
 
     return { debitCredit, creditCredit };
@@ -550,7 +584,7 @@ export class CreditPackageManager {
           gt: 0, // Only positive credits
         },
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: "asc" },
     });
   }
 
@@ -618,7 +652,7 @@ export class CreditPackageManager {
   private canApplyCredit(
     credit: any,
     invoiceAmount: Money,
-    lineTypes?: string[]
+    lineTypes?: string[],
   ): boolean {
     // Add rule-based logic here
     // For now, allow all credits to be applied
@@ -639,7 +673,7 @@ export class CreditPackageManager {
         appliedAt: new Date(), // Mark as applied to prevent further use
         metadata: {
           expiredAt: new Date().toISOString(),
-          expiredReason: 'Credit expired',
+          expiredReason: "Credit expired",
         },
       },
     });
@@ -652,7 +686,7 @@ export class CreditPackageManager {
     creditId: string,
     appliedAmount: Money,
     invoiceId: string,
-    fullyConsumed: boolean
+    fullyConsumed: boolean,
   ): Promise<void> {
     if (fullyConsumed) {
       // Mark entire credit as applied
@@ -675,7 +709,9 @@ export class CreditPackageManager {
       });
 
       if (originalCredit) {
-        const originalAmount = moneyFromDecimalString(originalCredit.amount.toString());
+        const originalAmount = moneyFromDecimalString(
+          originalCredit.amount.toString(),
+        );
         const remainingAmount = subtractMoney(originalAmount, appliedAmount);
 
         // Create new credit for remaining amount
@@ -687,7 +723,9 @@ export class CreditPackageManager {
             description: `${originalCredit.description} (remaining balance)`,
             expiresAt: originalCredit.expiresAt,
             metadata: {
-              ...(originalCredit.metadata ? JSON.parse(JSON.stringify(originalCredit.metadata)) : {}),
+              ...(originalCredit.metadata
+                ? JSON.parse(JSON.stringify(originalCredit.metadata))
+                : {}),
               originalCreditId: creditId,
               splitFromApplication: invoiceId,
             },
@@ -716,14 +754,14 @@ export class CreditPackageManager {
    */
   async reverseCreditApplication(
     invoiceId: string,
-    reason: string
+    reason: string,
   ): Promise<any[]> {
     // Find all credits applied to this invoice
     const appliedCredits = await this.prisma.credit.findMany({
       where: {
         appliedAt: { not: null },
         metadata: {
-          path: ['appliedToInvoice'],
+          path: ["appliedToInvoice"],
           equals: invoiceId,
         },
       },
@@ -744,7 +782,7 @@ export class CreditPackageManager {
           reversalReason: reason,
           reversedInvoiceId: invoiceId,
           reversedAt: new Date().toISOString(),
-        }
+        },
       );
 
       reversedCredits.push(reversalCredit);
@@ -756,7 +794,11 @@ export class CreditPackageManager {
   /**
    * Get credit usage analytics for a customer
    */
-  async getCreditAnalytics(customerId: string, fromDate: Date, toDate: Date): Promise<{
+  async getCreditAnalytics(
+    customerId: string,
+    fromDate: Date,
+    toDate: Date,
+  ): Promise<{
     totalIssued: Money;
     totalApplied: Money;
     totalExpired: Money;
@@ -774,14 +816,14 @@ export class CreditPackageManager {
       },
     });
 
-    let totalIssued = createMoney('0');
-    let totalApplied = createMoney('0');
-    let totalExpired = createMoney('0');
+    let totalIssued = createMoney("0");
+    let totalApplied = createMoney("0");
+    let totalExpired = createMoney("0");
     const applicationsByType: Record<CreditType, Money> = {
-      [CreditType.MANUAL]: createMoney('0'),
-      [CreditType.REFUND]: createMoney('0'),
-      [CreditType.ADJUSTMENT]: createMoney('0'),
-      [CreditType.PROMOTIONAL]: createMoney('0'),
+      [CreditType.MANUAL]: createMoney("0"),
+      [CreditType.REFUND]: createMoney("0"),
+      [CreditType.ADJUSTMENT]: createMoney("0"),
+      [CreditType.PROMOTIONAL]: createMoney("0"),
     };
 
     let applicationsCount = 0;
@@ -794,22 +836,27 @@ export class CreditPackageManager {
         totalApplied = addMoney(totalApplied, amount);
         applicationsByType[credit.type as CreditType] = addMoney(
           applicationsByType[credit.type as CreditType],
-          amount
+          amount,
         );
         applicationsCount++;
       }
 
-      if (credit.expiresAt && credit.expiresAt < new Date() && !credit.appliedAt) {
+      if (
+        credit.expiresAt &&
+        credit.expiresAt < new Date() &&
+        !credit.appliedAt
+      ) {
         totalExpired = addMoney(totalExpired, amount);
       }
     }
 
-    const averageApplicationAmount = applicationsCount > 0
-      ? {
-          amount: totalApplied.amount.div(applicationsCount),
-          currency: totalApplied.currency,
-        }
-      : createMoney('0');
+    const averageApplicationAmount =
+      applicationsCount > 0
+        ? {
+            amount: totalApplied.amount.div(applicationsCount),
+            currency: totalApplied.currency,
+          }
+        : createMoney("0");
 
     const creditUtilizationRate = totalIssued.amount.greaterThan(0)
       ? totalApplied.amount.div(totalIssued.amount).toNumber() * 100
@@ -825,4 +872,3 @@ export class CreditPackageManager {
     };
   }
 }
-

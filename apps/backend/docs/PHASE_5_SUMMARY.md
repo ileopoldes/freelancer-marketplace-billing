@@ -11,27 +11,29 @@ Phase 5 significantly enhances the BillForge billing system with sophisticated d
 **Location**: `src/services/pricing/DiscountEngine.ts`
 
 #### Features:
+
 - **Multiple Discount Types**: Percentage, fixed amount, usage-based, and bulk/tiered discounts
 - **Flexible Scheduling**: One-time, recurring, progressive, and conditional discount application
 - **Rule-Based Application**: Sophisticated conditions based on billing cycle, customer type, invoice amount, etc.
 - **Validation & Safety**: Prevents invalid discount configurations and over-application
 
 #### Implementation Highlights:
+
 ```typescript
 // Promotional discount for new customers
 const newCustomerDiscount = DiscountEngine.createPromotionalDiscount(
-  'new-customer-20',
-  'New Customer 20% Off',
-  20,  // 20% discount
-  3    // First 3 billing cycles
+  "new-customer-20",
+  "New Customer 20% Off",
+  20, // 20% discount
+  3, // First 3 billing cycles
 );
 
 // Volume-based discount
 const volumeDiscount = DiscountEngine.createVolumeDiscount(
-  'volume-discount',
-  'High Volume 15% Off',
+  "volume-discount",
+  "High Volume 15% Off",
   500, // Minimum $500 invoice
-  15   // 15% discount
+  15, // 15% discount
 );
 ```
 
@@ -40,6 +42,7 @@ const volumeDiscount = DiscountEngine.createVolumeDiscount(
 **Location**: `src/services/billing/CreditManager.ts`
 
 #### Features:
+
 - **Credit Types**: Manual, refund, adjustment, and promotional credits
 - **Expiration Management**: Configurable expiration dates with automatic cleanup
 - **Smart Application Logic**: Priority-based credit application (promotional > refund > manual > adjustment)
@@ -48,21 +51,22 @@ const volumeDiscount = DiscountEngine.createVolumeDiscount(
 - **Analytics**: Comprehensive credit utilization reporting
 
 #### Implementation Highlights:
+
 ```typescript
 // Issue promotional credit with expiration
 await creditManager.issuePromotionalCredit(
   customerId,
-  createMoney('100'),
-  'Welcome Bonus',
-  90 // Expires in 90 days
+  createMoney("100"),
+  "Welcome Bonus",
+  90, // Expires in 90 days
 );
 
 // Transfer credits between customers
 const { debitCredit, creditCredit } = await creditManager.transferCredit(
   fromCustomerId,
   toCustomerId,
-  createMoney('25'),
-  'Account consolidation'
+  createMoney("25"),
+  "Account consolidation",
 );
 ```
 
@@ -71,6 +75,7 @@ const { debitCredit, creditCredit } = await creditManager.transferCredit(
 **Location**: `src/services/pricing/ProrationEngine.ts`
 
 #### Features:
+
 - **Mid-Cycle Plan Changes**: Accurate proration for upgrades and downgrades
 - **Multiple Adjustment Processing**: Handle complex sequences of plan changes
 - **Usage Proration**: Pro-rate usage charges for partial periods
@@ -78,17 +83,18 @@ const { debitCredit, creditCredit } = await creditManager.transferCredit(
 - **Month-End Handling**: Robust handling of month-end edge cases and leap years
 
 #### Implementation Highlights:
+
 ```typescript
 // Calculate mid-cycle plan change
 const result = prorationEngine.calculateMidCyclePlanChange(
   {
-    changeDate: new Date('2024-01-15'),
-    oldPlanAmount: createMoney('100'),
-    newPlanAmount: createMoney('150'),
-    reason: 'Plan upgrade'
+    changeDate: new Date("2024-01-15"),
+    oldPlanAmount: createMoney("100"),
+    newPlanAmount: createMoney("150"),
+    reason: "Plan upgrade",
   },
   billingStart,
-  billingEnd
+  billingEnd,
 );
 
 // Process multiple adjustments
@@ -96,7 +102,7 @@ const adjustmentResult = prorationEngine.processMidCycleAdjustments(
   adjustments,
   billingPeriodStart,
   billingPeriodEnd,
-  basePlanAmount
+  basePlanAmount,
 );
 ```
 
@@ -105,6 +111,7 @@ const adjustmentResult = prorationEngine.processMidCycleAdjustments(
 **Location**: `src/services/billing/InvoiceGenerator.ts`
 
 #### Enhancements:
+
 - **Automatic Discount Application**: Seamless integration with DiscountEngine
 - **Enhanced Credit Application**: Uses advanced CreditManager for optimal credit usage
 - **Comprehensive Line Items**: Detailed breakdown of all charges, discounts, and credits
@@ -115,6 +122,7 @@ const adjustmentResult = prorationEngine.processMidCycleAdjustments(
 **Location**: `tests/phase5-enhancements.test.ts`
 
 #### Test Categories:
+
 - **DiscountEngine Tests**: All discount types and application scenarios
 - **CreditManager Tests**: Credit creation, application, transfers, and analytics
 - **ProrationEngine Tests**: Mid-cycle changes, usage proration, grace periods
@@ -124,21 +132,26 @@ const adjustmentResult = prorationEngine.processMidCycleAdjustments(
 ## 📊 Database Schema Updates
 
 ### Credit Table Enhancement
+
 ```sql
 ALTER TABLE credits ADD COLUMN expiresAt TIMESTAMP;
 ```
 
 The Credit model now includes:
+
 - `expiresAt`: Optional expiration date for credits
 - Enhanced metadata support for tracking credit sources and applications
 
 ## 🔧 Configuration & Setup
 
 ### Environment Variables
+
 No new environment variables required. All configuration is handled through code.
 
 ### Default Discount Rules
+
 The InvoiceGenerator automatically sets up common discount rules:
+
 - New customer promotional discount (20% off first 3 cycles)
 - Volume discount for high-value invoices (10% off orders ≥ $500)
 
@@ -152,13 +165,16 @@ The InvoiceGenerator automatically sets up common discount rules:
 ```
 
 ### Test Categories Covered:
+
 1. **Discount Engine** (6 tests)
+
    - Percentage and fixed amount discounts
    - Volume-based discounts
    - Billing cycle conditions
    - Amount validation and capping
 
 2. **Credit Manager** (6 tests)
+
    - Credit creation and tracking
    - Priority-based application
    - Partial consumption
@@ -167,6 +183,7 @@ The InvoiceGenerator automatically sets up common discount rules:
    - Credit transfers
 
 3. **Proration Engine** (5 tests)
+
    - Mid-cycle plan changes
    - Upgrade/downgrade scenarios
    - Multiple adjustments
@@ -174,6 +191,7 @@ The InvoiceGenerator automatically sets up common discount rules:
    - Grace period handling
 
 4. **Integration Tests** (2 tests)
+
    - Enhanced invoice generation
    - Idempotency validation
 
@@ -185,16 +203,19 @@ The InvoiceGenerator automatically sets up common discount rules:
 ## 🎯 Business Impact
 
 ### Customer Experience
+
 - **Flexible Pricing**: Multiple discount types support various customer segments
 - **Fair Billing**: Accurate proration ensures customers only pay for what they use
 - **Credit Management**: Transparent credit tracking and application
 
 ### Operational Benefits
+
 - **Automated Discounts**: Reduces manual intervention in billing processes
 - **Audit Trails**: Complete tracking of all discounts and credits applied
 - **Error Reduction**: Robust validation prevents billing errors
 
 ### Revenue Optimization
+
 - **Strategic Discounting**: Targeted discounts for customer acquisition and retention
 - **Usage-Based Incentives**: Encourage higher usage through volume discounts
 - **Credit Efficiency**: Optimal credit application maximizes customer satisfaction
@@ -202,10 +223,12 @@ The InvoiceGenerator automatically sets up common discount rules:
 ## 🔄 Integration with Previous Phases
 
 ### Phase 1-2 Compatibility
+
 - All existing basic billing functionality preserved
 - Enhanced with new discount and credit capabilities
 
 ### Phase 3-4 Enhancements
+
 - Builds upon existing proration and usage billing
 - Adds sophisticated mid-cycle change handling
 - Maintains existing API contracts
@@ -213,11 +236,13 @@ The InvoiceGenerator automatically sets up common discount rules:
 ## 🚦 Performance Considerations
 
 ### Optimization Strategies
+
 - **Rule Caching**: Discount rules are cached in memory for fast application
 - **Credit Sorting**: Efficient credit sorting algorithm for optimal application
 - **Date Calculations**: Optimized date arithmetic for proration accuracy
 
 ### Scalability
+
 - **Database Indexing**: Proper indexes on credit tables for fast queries
 - **Batch Processing**: Support for bulk credit operations
 - **Memory Management**: Efficient handling of large credit/discount rule sets
@@ -225,12 +250,14 @@ The InvoiceGenerator automatically sets up common discount rules:
 ## 🛠️ Maintenance & Monitoring
 
 ### Key Metrics to Monitor
+
 - Discount application rates
 - Credit utilization percentages
 - Proration accuracy in plan changes
 - Invoice generation performance
 
 ### Common Maintenance Tasks
+
 - Regular cleanup of expired credits
 - Discount rule effectiveness analysis
 - Proration accuracy validation
@@ -238,6 +265,7 @@ The InvoiceGenerator automatically sets up common discount rules:
 ## 🔮 Future Enhancements
 
 Potential areas for expansion:
+
 1. **Advanced Discount Stacking**: Multiple discounts on single invoice
 2. **Dynamic Pricing**: Real-time pricing adjustments based on usage patterns
 3. **Credit Marketplace**: Allow customers to trade credits
@@ -246,6 +274,7 @@ Potential areas for expansion:
 ## ✅ Deliverables Summary
 
 ### Core Implementation
+
 - [x] Enhanced DiscountEngine with flexible rules
 - [x] Advanced CreditManager with expiration and transfers
 - [x] Sophisticated ProrationEngine for mid-cycle changes
@@ -253,15 +282,18 @@ Potential areas for expansion:
 - [x] Comprehensive test suite (22 tests)
 
 ### Database Changes
+
 - [x] Credit schema enhancement (expiresAt field)
 - [x] Migration scripts created and applied
 
 ### Documentation
+
 - [x] Comprehensive code documentation
 - [x] Test coverage documentation
 - [x] Implementation summary (this document)
 
 ### Quality Assurance
+
 - [x] All tests passing
 - [x] Edge cases covered
 - [x] Performance validated
@@ -272,4 +304,3 @@ Potential areas for expansion:
 Phase 5 successfully transforms BillForge from a basic billing system into a sophisticated, enterprise-ready platform capable of handling complex discount strategies, advanced credit management, and precise proration scenarios. The implementation maintains backward compatibility while adding powerful new capabilities that significantly enhance the system's flexibility and business value.
 
 The comprehensive test coverage and robust error handling ensure reliability, while the modular design allows for easy future enhancements. This phase positions BillForge as a competitive solution in the billing automation space.
-

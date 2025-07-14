@@ -1,8 +1,11 @@
-import { Money } from '../types';
+import { Money } from "../types";
 /**
  * Create a Money object from a string or number
  */
-export declare function createMoney(amount: string | number, currency?: string): Money;
+export declare function createMoney(
+  amount: string | number,
+  currency?: string,
+): Money;
 /**
  * Add two Money objects (must have same currency)
  */
@@ -14,11 +17,17 @@ export declare function subtractMoney(a: Money, b: Money): Money;
 /**
  * Multiply Money by a number
  */
-export declare function multiplyMoney(money: Money, multiplier: string | number): Money;
+export declare function multiplyMoney(
+  money: Money,
+  multiplier: string | number,
+): Money;
 /**
  * Divide Money by a number
  */
-export declare function divideMoney(money: Money, divisor: string | number): Money;
+export declare function divideMoney(
+  money: Money,
+  divisor: string | number,
+): Money;
 /**
  * Round Money to specified decimal places (default 2 for most currencies)
  */
@@ -51,11 +60,17 @@ export declare function moneyToDecimalString(money: Money): string;
 /**
  * Create Money from database decimal string
  */
-export declare function moneyFromDecimalString(decimalString: string, currency?: string): Money;
+export declare function moneyFromDecimalString(
+  decimalString: string,
+  currency?: string,
+): Money;
 /**
  * Calculate percentage of Money
  */
-export declare function calculatePercentage(money: Money, percentage: string | number): Money;
+export declare function calculatePercentage(
+  money: Money,
+  percentage: string | number,
+): Money;
 /**
  * Sum an array of Money objects (all must have same currency)
  */

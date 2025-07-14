@@ -1,53 +1,57 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useCustomers } from '@/hooks/api'
-import { formatCurrency, formatDate, debounce } from '@/lib/utils'
-import type { Customer } from '@/lib/api'
+import { useState } from "react";
+import { useCustomers } from "@/hooks/api";
+import { formatCurrency, formatDate, debounce } from "@/lib/utils";
+import type { Customer } from "@/lib/api";
 
 export function CustomerDashboard() {
-  const { data: customers = [], isLoading, isError } = useCustomers()
-  const [searchTerm, setSearchTerm] = useState('')
-  const [sortBy, setSortBy] = useState<'name' | 'creditBalance' | 'createdAt'>('name')
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
+  const { data: customers = [], isLoading, isError } = useCustomers();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState<"name" | "creditBalance" | "createdAt">(
+    "name",
+  );
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   // Filter customers based on search term
-  const filteredCustomers = customers.filter(customer =>
-    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.email.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredCustomers = customers.filter(
+    (customer) =>
+      customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      customer.email.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
 
   // Sort customers
   const sortedCustomers = [...filteredCustomers].sort((a, b) => {
-    let comparison = 0
-    
+    let comparison = 0;
+
     switch (sortBy) {
-      case 'name':
-        comparison = a.name.localeCompare(b.name)
-        break
-      case 'creditBalance':
-        comparison = parseFloat(a.creditBalance) - parseFloat(b.creditBalance)
-        break
-      case 'createdAt':
-        comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        break
+      case "name":
+        comparison = a.name.localeCompare(b.name);
+        break;
+      case "creditBalance":
+        comparison = parseFloat(a.creditBalance) - parseFloat(b.creditBalance);
+        break;
+      case "createdAt":
+        comparison =
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        break;
     }
 
-    return sortOrder === 'asc' ? comparison : -comparison
-  })
+    return sortOrder === "asc" ? comparison : -comparison;
+  });
 
   const debouncedSearch = debounce((value: string) => {
-    setSearchTerm(value)
-  }, 300)
+    setSearchTerm(value);
+  }, 300);
 
   const handleSort = (field: typeof sortBy) => {
     if (sortBy === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
     } else {
-      setSortBy(field)
-      setSortOrder('asc')
+      setSortBy(field);
+      setSortOrder("asc");
     }
-  }
+  };
 
   if (isLoading) {
     return (
@@ -61,25 +65,27 @@ export function CustomerDashboard() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   if (isError) {
     return (
       <div className="card p-6 border-error-200 bg-error-50">
-        <p className="text-error-700">Failed to load customers. Please try again.</p>
+        <p className="text-error-700">
+          Failed to load customers. Please try again.
+        </p>
       </div>
-    )
+    );
   }
 
-  const totalCustomers = customers.length
+  const totalCustomers = customers.length;
   const totalCreditBalance = customers.reduce(
     (sum, customer) => sum + parseFloat(customer.creditBalance),
-    0
-  )
+    0,
+  );
   const customersWithCredits = customers.filter(
-    customer => parseFloat(customer.creditBalance) > 0
-  ).length
+    (customer) => parseFloat(customer.creditBalance) > 0,
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -90,14 +96,20 @@ export function CustomerDashboard() {
           <p className="text-2xl font-bold text-gray-900">{totalCustomers}</p>
         </div>
         <div className="card p-6">
-          <h3 className="text-sm font-medium text-gray-500">Total Credit Balance</h3>
+          <h3 className="text-sm font-medium text-gray-500">
+            Total Credit Balance
+          </h3>
           <p className="text-2xl font-bold text-gray-900">
             {formatCurrency(totalCreditBalance)}
           </p>
         </div>
         <div className="card p-6">
-          <h3 className="text-sm font-medium text-gray-500">Customers with Credits</h3>
-          <p className="text-2xl font-bold text-gray-900">{customersWithCredits}</p>
+          <h3 className="text-sm font-medium text-gray-500">
+            Customers with Credits
+          </h3>
+          <p className="text-2xl font-bold text-gray-900">
+            {customersWithCredits}
+          </p>
         </div>
       </div>
 
@@ -123,13 +135,13 @@ export function CustomerDashboard() {
               <tr>
                 <th>
                   <button
-                    onClick={() => handleSort('name')}
+                    onClick={() => handleSort("name")}
                     className="flex items-center space-x-1 hover:text-gray-700"
                   >
                     <span>Name</span>
-                    {sortBy === 'name' && (
+                    {sortBy === "name" && (
                       <span className="text-primary-500">
-                        {sortOrder === 'asc' ? '↑' : '↓'}
+                        {sortOrder === "asc" ? "↑" : "↓"}
                       </span>
                     )}
                   </button>
@@ -137,26 +149,26 @@ export function CustomerDashboard() {
                 <th>Email</th>
                 <th>
                   <button
-                    onClick={() => handleSort('creditBalance')}
+                    onClick={() => handleSort("creditBalance")}
                     className="flex items-center space-x-1 hover:text-gray-700"
                   >
                     <span>Credit Balance</span>
-                    {sortBy === 'creditBalance' && (
+                    {sortBy === "creditBalance" && (
                       <span className="text-primary-500">
-                        {sortOrder === 'asc' ? '↑' : '↓'}
+                        {sortOrder === "asc" ? "↑" : "↓"}
                       </span>
                     )}
                   </button>
                 </th>
                 <th>
                   <button
-                    onClick={() => handleSort('createdAt')}
+                    onClick={() => handleSort("createdAt")}
                     className="flex items-center space-x-1 hover:text-gray-700"
                   >
                     <span>Created</span>
-                    {sortBy === 'createdAt' && (
+                    {sortBy === "createdAt" && (
                       <span className="text-primary-500">
-                        {sortOrder === 'asc' ? '↑' : '↓'}
+                        {sortOrder === "asc" ? "↑" : "↓"}
                       </span>
                     )}
                   </button>
@@ -169,17 +181,21 @@ export function CustomerDashboard() {
                   <td className="font-medium text-gray-900">{customer.name}</td>
                   <td className="text-gray-500">{customer.email}</td>
                   <td>
-                    <span className={`font-medium ${
-                      parseFloat(customer.creditBalance) > 0
-                        ? 'text-success-600'
-                        : parseFloat(customer.creditBalance) < 0
-                        ? 'text-error-600'
-                        : 'text-gray-500'
-                    }`}>
+                    <span
+                      className={`font-medium ${
+                        parseFloat(customer.creditBalance) > 0
+                          ? "text-success-600"
+                          : parseFloat(customer.creditBalance) < 0
+                            ? "text-error-600"
+                            : "text-gray-500"
+                      }`}
+                    >
                       {formatCurrency(customer.creditBalance)}
                     </span>
                   </td>
-                  <td className="text-gray-500">{formatDate(customer.createdAt)}</td>
+                  <td className="text-gray-500">
+                    {formatDate(customer.createdAt)}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -188,11 +204,12 @@ export function CustomerDashboard() {
 
         {sortedCustomers.length === 0 && (
           <div className="p-6 text-center text-gray-500">
-            {searchTerm ? 'No customers found matching your search.' : 'No customers found.'}
+            {searchTerm
+              ? "No customers found matching your search."
+              : "No customers found."}
           </div>
         )}
       </div>
     </div>
-  )
+  );
 }
-
