@@ -1,0 +1,409 @@
+// Freelancer Marketplace Billing System Schema
+// Multi-tenant architecture with Organizations > Entities > Teams > Users
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id           String   @id @default(cuid())
+  name         String
+  domain       String?  @unique
+  billingEmail String
+  status       String   @default("ACTIVE")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  entities Entity[]
+
+  @@map("organizations")
+}
+
+model Entity {
+  id              String   @id @default(cuid())
+  organizationId  String
+  name            String
+  description     String?
+  billingSettings Json?
+  status          String   @default("ACTIVE")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  teams Team[]
+  entityUsers EntityUser[]
+  creditBalances EntityCreditBalance[]
+  marketplaceEvents MarketplaceEvent[]
+  subscriptions EntitySubscription[]
+
+  @@map("entities")
+}
+
+model Team {
+  id         String   @id @default(cuid())
+  entityId   String
+  name       String
+  description String?
+  teamLeadId String?
+  billingModel Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  entity Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  @@map("teams")
+}
+
+model User {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  name       String
+  globalRole String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  entityUsers EntityUser[]
+  marketplaceEvents MarketplaceEvent[]
+
+  @@map("users")
+}
+
+model EntityUser {
+  id           String   @id @default(cuid())
+  entityId     String
+  userId       String
+  role         String
+  creditLimit  Decimal  @default(0) @db.Decimal(20, 6)
+  seatAllocation Int
+  status        String   @default("ACTIVE")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  entity Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("entity_users")
+}
+
+model Customer {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String
+  company       String?
+  address       String?
+  taxId         String?
+  creditBalance Decimal  @default(0) @db.Decimal(20, 6) // Customer credit balance
+  timezone      String   @default("UTC")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  contracts    Contract[]
+  invoices     Invoice[]
+  usageEvents  UsageEvent[]
+  credits      Credit[]
+  payments     Payment[]
+
+  @@index([email])
+  @@index([createdAt])
+  @@map("customers")
+}
+
+
+model Contract {
+  id                String             @id @default(cuid())
+  customerId        String
+  startDate         DateTime
+  endDate           DateTime?
+  status            ContractStatus @default(ACTIVE)
+  baseFee           Decimal     @db.Decimal(20, 6)
+  minCommitCalls    Int         @default(10000) // Minimum committed calls per month
+  callOverageFee    Decimal     @default(0.002) @db.Decimal(20, 6)
+  discountRate      Decimal     @default(0.2) @db.Decimal(5, 4) // 20% discount for first 3 cycles
+  nextBillingDate   DateTime    // When this contract is next due for billing
+  lastBilledAt      DateTime?   // When this contract was last billed
+  billingCycle      Int         @default(1) // Current billing cycle (for discount tracking)
+  recurrenceRule    String?     // RFC 5545 RRULE
+  metadata          Json?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  customer          Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  invoices          Invoice[]
+  usageEvents       UsageEvent[]
+
+  @@index([customerId])
+  @@index([startDate])
+  @@map("contracts")
+}
+
+enum ContractStatus {
+  ACTIVE
+  PAUSED
+  CANCELED
+  EXPIRED
+}
+
+model PriceBook {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  currency    String   @default("USD")
+  baseFee     Decimal  @db.Decimal(20, 6) // Monthly base fee (e.g., $99)
+  tier1Limit  Int      @default(1000)     // Free tier limit
+  tier1Price  Decimal  @default(0) @db.Decimal(20, 6)
+  tier2Limit  Int      @default(1000000)  // Tier 2 upper limit
+  tier2Price  Decimal  @default(0.002) @db.Decimal(20, 6)
+  tier3Price  Decimal  @default(0.001) @db.Decimal(20, 6)
+  minCommit   Int      @default(10000)    // Minimum commit calls
+  minCommitFee Decimal @default(20) @db.Decimal(20, 6)
+  active      Boolean  @default(true)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([active])
+  @@map("price_books")
+}
+
+model UsageEvent {
+  id         String   @id @default(cuid())
+  customerId String
+  contractId String
+  eventType  String   @default("api_call")
+  quantity   Int      @default(1)
+  timestamp  DateTime @default(now())
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  contract   Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([contractId])
+  @@index([timestamp])
+  @@map("usage_events")
+}
+
+model CreditPackage {
+  id          String   @id @default(cuid())
+  name        String
+  creditsAmount Decimal @db.Decimal(20, 6)
+  price       Decimal   @db.Decimal(20, 6)
+  validityDays Int
+  description String?
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("credit_packages")
+}
+
+model EntityCreditBalance {
+  id           String   @id @default(cuid())
+  entityId     String
+  totalCredits Decimal  @default(0) @db.Decimal(20, 6)
+  usedCredits  Decimal  @default(0) @db.Decimal(20, 6)
+  expiresAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  entity Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  @@map("entity_credit_balances")
+}
+
+model MarketplaceEvent {
+  id        String   @id @default(cuid())
+  entityId  String
+  userId    String
+  eventType String
+  quantity  Int
+  unitPrice Decimal  @db.Decimal(20, 6)
+  timestamp DateTime @default(now())
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  entity Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("marketplace_events")
+}
+
+model EntitySubscription {
+  id             String   @id @default(cuid())
+  entityId       String
+  subscriptionType String
+  seatCount      Int
+  monthlyPrice   Decimal  @db.Decimal(20, 6)
+  annualPrice    Decimal  @db.Decimal(20, 6)
+  billingCycle   String
+  status         String   @default("ACTIVE")
+  nextBillingDate DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  entity Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  @@map("entity_subscriptions")
+}
+
+model Credit {
+  id          String      @id @default(cuid())
+  customerId  String
+  amount      Decimal     @db.Decimal(20, 6)
+  description String
+  type        CreditType  @default(MANUAL)
+  expiresAt   DateTime?
+  appliedAt   DateTime?
+  metadata    Json?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([createdAt])
+  @@map("credits")
+}
+
+enum CreditType {
+  MANUAL
+  REFUND
+  ADJUSTMENT
+  PROMOTIONAL
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  customerId     String
+  invoiceId      String?
+  amount         Decimal       @db.Decimal(20, 6)
+  currency       String        @default("USD")
+  status         PaymentStatus @default(PENDING)
+  paymentMethod  String?
+  transactionId  String?
+  processedAt    DateTime?
+  metadata       Json?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  customer       Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  invoice        Invoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+
+  @@index([customerId])
+  @@index([status])
+  @@map("payments")
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+// Billing Job Tracking for idempotency
+model BillingJob {
+  id          String    @id @default(cuid())
+  asOfDate    DateTime
+  status      JobStatus @default(PENDING)
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  errorMessage String?
+  totalCustomers Int    @default(0)
+  processedCustomers Int @default(0)
+  invoicesCreated Int @default(0)
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([asOfDate]) // Ensure only one job per date
+  @@index([status])
+  @@map("billing_jobs")
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model Invoice {
+  id                String        @id @default(cuid())
+  customerId        String
+  contractId        String?
+  number            String        @unique
+  status            InvoiceStatus @default(DRAFT)
+  subtotal          Decimal       @db.Decimal(20, 6)
+  taxAmount         Decimal       @default(0) @db.Decimal(20, 6)
+  discountAmount    Decimal       @default(0) @db.Decimal(20, 6)
+  creditAmount      Decimal       @default(0) @db.Decimal(20, 6)
+  total             Decimal       @db.Decimal(20, 6)
+  currency          String        @default("USD")
+  periodStart       DateTime
+  periodEnd         DateTime
+  dueDate           DateTime?
+  paidAt            DateTime?
+  voidedAt          DateTime?
+  billingCycle      Int           @default(1) // Track billing cycle for discount eligibility
+  metadata          Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  customer          Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  contract          Contract?     @relation(fields: [contractId], references: [id], onDelete: SetNull)
+  invoiceLines      InvoiceLine[]
+  payments          Payment[]
+
+  @@index([customerId])
+  @@index([contractId])
+  @@index([periodStart])
+  @@index([number])
+  @@map("invoices")
+}
+
+enum InvoiceStatus {
+  DRAFT
+  OPEN
+  PAID
+  VOID
+  UNCOLLECTIBLE
+}
+
+model InvoiceLine {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  lineType    LineType @default(BASE_FEE)
+  description String
+  quantity    Int      @default(1)
+  unitAmount  Decimal  @db.Decimal(20, 6)
+  amount      Decimal  @db.Decimal(20, 6)
+  currency    String   @default("USD")
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("invoice_lines")
+}
+
+enum LineType {
+  BASE_FEE
+  MINIMUM_COMMIT
+  USAGE_OVERAGE
+  DISCOUNT
+  CREDIT
+  TAX
+}
+

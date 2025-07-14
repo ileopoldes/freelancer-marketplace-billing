@@ -1,0 +1,33 @@
+{
+  "name": "freelancer-marketplace-billing",
+  "version": "1.0.0",
+  "description": "Multi-format billing system for freelancer marketplace platform",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=@marketplace/backend\" \"npm run dev --workspace=@marketplace/frontend\"",
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces",
+    "lint": "npm run lint --workspaces",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "db:generate": "npm run db:generate --workspace=@marketplace/backend",
+    "db:migrate": "npm run db:migrate --workspace=@marketplace/backend",
+    "db:studio": "npm run db:studio --workspace=@marketplace/backend"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "concurrently": "^8.2.0",
+    "eslint": "^8.45.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.1.6"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
+

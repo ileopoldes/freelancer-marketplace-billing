@@ -1,0 +1,26 @@
+{
+  "name": "@marketplace/shared",
+  "version": "1.0.0",
+  "description": "Shared types and utilities for Freelancer Marketplace Billing",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint src --ext .ts",
+    "test": "jest"
+  },
+  "dependencies": {
+    "decimal.js": "^10.4.3",
+    "rrule": "^2.7.2",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.5",
+    "@types/node": "^20.8.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.1.6"
+  }
+}
+
