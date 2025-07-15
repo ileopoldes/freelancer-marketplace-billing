@@ -34,77 +34,99 @@ function adjustMonthEndDate(
   return new Date(year, month, targetDay);
 }
 
-/**
- * Generate dates with month-end adjustment for BYMONTHDAY rules
- */
-function generateMonthlyDatesWithAdjustment(
-  rruleString: string,
-  startDate: Date,
-  count: number,
-): Date[] {
+// --- Chain of Responsibility for Monthly Date Generation ---
+type RuleInput = {
+  rruleString: string;
+  startDate: Date;
+  count: number;
+};
+type Rule = (input: RuleInput, next: Rule) => Date[];
+
+const monthlyByMonthDayRule: Rule = (input, next) => {
+  const { rruleString, startDate, count } = input;
   const byMonthDayMatch = rruleString.match(/BYMONTHDAY=(-?\d+)/);
-  const intervalMatch = rruleString.match(/INTERVAL=(\d+)/);
   const freqMatch = rruleString.match(/FREQ=(\w+)/);
 
-  // Handle non-monthly patterns (weekly, yearly) or complex patterns without BYMONTHDAY
-  if (!byMonthDayMatch || (freqMatch && freqMatch[1] !== "MONTHLY")) {
-    // Use standard RRule processing for non-monthly patterns or complex rules
-    // For timezone consistency, normalize the start date
-    let normalizedStartDate = startDate;
-    if (freqMatch && freqMatch[1] === "WEEKLY") {
-      // For weekly patterns, ensure we start from the correct day in UTC
-      normalizedStartDate = new Date(
-        startDate.toISOString().split("T")[0] + "T12:00:00.000Z",
-      );
-    }
+  if (byMonthDayMatch && freqMatch && freqMatch[1] === "MONTHLY") {
+    const targetDay = parseInt(byMonthDayMatch[1]);
+    const intervalMatch = rruleString.match(/INTERVAL=(\d+)/);
+    const interval = intervalMatch ? parseInt(intervalMatch[1]) : 1;
+    const dates: Date[] = [];
+    let currentYear = startDate.getFullYear();
+    let currentMonth = startDate.getMonth();
 
-    const rrule = new RRule({
-      ...parseRRule(rruleString).options,
-      dtstart: normalizedStartDate,
-    });
-
-    // For yearly Feb 29 patterns, need special handling
-    if (
-      freqMatch &&
-      freqMatch[1] === "YEARLY" &&
-      rruleString.includes("BYMONTH=2;BYMONTHDAY=29")
-    ) {
-      const dates: Date[] = [];
-      let year = startDate.getFullYear();
-
-      while (dates.length < count) {
-        // Check if it's a leap year
-        if ((year % 4 === 0 && year % 100 !== 0) || year % 400 === 0) {
-          dates.push(new Date(year, 1, 29)); // February 29
-        }
-        year++;
+    for (let i = 0; i < count; i++) {
+      dates.push(adjustMonthEndDate(currentYear, currentMonth, targetDay));
+      currentMonth += interval;
+      while (currentMonth > 11) {
+        currentMonth -= 12;
+        currentYear++;
       }
-
-      return dates;
     }
-
-    return rrule.all((_, i) => i < count);
+    return dates;
   }
+  return next(input, next);
+};
 
-  const targetDay = parseInt(byMonthDayMatch[1]);
-  const interval = intervalMatch ? parseInt(intervalMatch[1]) : 1;
-  const dates: Date[] = [];
-  let currentYear = startDate.getFullYear();
-  let currentMonth = startDate.getMonth();
+const yearlyFeb29Rule: Rule = (input, next) => {
+  const { rruleString, startDate, count } = input;
+  const freqMatch = rruleString.match(/FREQ=(\w+)/);
 
-  for (let i = 0; i < count; i++) {
-    dates.push(adjustMonthEndDate(currentYear, currentMonth, targetDay));
-
-    // Move to next month by interval
-    currentMonth += interval;
-    while (currentMonth > 11) {
-      currentMonth -= 12;
-      currentYear++;
+  if (
+    freqMatch &&
+    freqMatch[1] === "YEARLY" &&
+    rruleString.includes("BYMONTH=2;BYMONTHDAY=29")
+  ) {
+    const dates: Date[] = [];
+    let year = startDate.getFullYear();
+    while (dates.length < count) {
+      if ((year % 4 === 0 && year % 100 !== 0) || year % 400 === 0) {
+        dates.push(new Date(year, 1, 29));
+      }
+      year++;
     }
+    return dates;
   }
+  return next(input, next);
+};
 
-  return dates;
+const defaultRRuleRule: Rule = (input, _next) => {
+  const { rruleString, startDate, count } = input;
+  const freqMatch = rruleString.match(/FREQ=(\w+)/);
+  let normalizedStartDate = startDate;
+  if (freqMatch && freqMatch[1] === "WEEKLY") {
+    normalizedStartDate = new Date(
+      startDate.toISOString().split("T")[0] + "T12:00:00.000Z",
+    );
+  }
+  const rrule = new RRule({
+    ...parseRRule(rruleString).options,
+    dtstart: normalizedStartDate,
+  });
+  return rrule.all((_, i) => i < count);
+};
+
+function chainRules(rules: Rule[]): Rule {
+  return (input, _next) => {
+    const [first, ...rest] = rules;
+    if (!first) throw new Error("No rule handled the input");
+    const next = rest.length
+      ? chainRules(rest)
+      : () => {
+          throw new Error("No rule handled the input");
+        };
+    return first(input, next);
+  };
 }
+
+const rules: Rule[] = [
+  monthlyByMonthDayRule,
+  yearlyFeb29Rule,
+  defaultRRuleRule,
+];
+const generateMonthlyDatesWithAdjustment = chainRules(rules);
+
+// --- End Chain of Responsibility ---
 
 /**
  * Generate the next billing dates for a subscription
@@ -114,8 +136,93 @@ export function getNextBillingDates(
   startDate: Date,
   count = 12,
 ): Date[] {
-  return generateMonthlyDatesWithAdjustment(rruleString, startDate, count);
+  return generateMonthlyDatesWithAdjustment(
+    { rruleString, startDate, count },
+    () => {
+      throw new Error("No rule handled the input");
+    },
+  );
 }
+
+// --- Chain of Responsibility for Next Billing Date ---
+type NextDateRuleInput = {
+  rruleString: string;
+  after: Date;
+};
+type NextDateRule = (
+  input: NextDateRuleInput,
+  next: NextDateRule,
+) => Date | null;
+
+const nextDateCountRule: NextDateRule = (input, next) => {
+  const { rruleString, after } = input;
+  const countMatch = rruleString.match(/COUNT=(\d+)/);
+  if (countMatch) {
+    const startDate = new Date(2024, 0, 1); // Jan 1, 2024
+    const rrule = new RRule({
+      ...parseRRule(rruleString).options,
+      dtstart: startDate,
+    });
+    const result = rrule.after(after, true);
+    return result || null;
+  }
+  return next(input, next);
+};
+
+const nextDateMonthlyByMonthDayRule: NextDateRule = (input, next) => {
+  const { rruleString, after } = input;
+  const byMonthDayMatch = rruleString.match(/BYMONTHDAY=(-?\d+)/);
+  const freqMatch = rruleString.match(/FREQ=(\w+)/);
+  if (byMonthDayMatch && freqMatch && freqMatch[1] === "MONTHLY") {
+    const targetDay = parseInt(byMonthDayMatch[1]);
+    const intervalMatch = rruleString.match(/INTERVAL=(\d+)/);
+    const interval = intervalMatch ? parseInt(intervalMatch[1]) : 1;
+    let nextMonth = after.getMonth() + interval;
+    let nextYear = after.getFullYear();
+    while (nextMonth > 11) {
+      nextMonth -= 12;
+      nextYear++;
+    }
+    let nextDate = adjustMonthEndDate(nextYear, nextMonth, targetDay);
+    if (nextDate <= after) {
+      nextMonth += interval;
+      while (nextMonth > 11) {
+        nextMonth -= 12;
+        nextYear++;
+      }
+      nextDate = adjustMonthEndDate(nextYear, nextMonth, targetDay);
+    }
+    return nextDate;
+  }
+  return next(input, next);
+};
+
+const nextDateDefaultRRuleRule: NextDateRule = (input, _next) => {
+  const { rruleString, after } = input;
+  const rrule = parseRRule(rruleString);
+  return rrule.after(after, true) || null;
+};
+
+function chainNextDateRules(rules: NextDateRule[]): NextDateRule {
+  return (input, _next) => {
+    const [first, ...rest] = rules;
+    if (!first) throw new Error("No rule handled the input");
+    const next = rest.length
+      ? chainNextDateRules(rest)
+      : () => {
+          throw new Error("No rule handled the input");
+        };
+    return first(input, next);
+  };
+}
+
+const nextDateRules: NextDateRule[] = [
+  nextDateCountRule,
+  nextDateMonthlyByMonthDayRule,
+  nextDateDefaultRRuleRule,
+];
+const getNextBillingDateWithChain = chainNextDateRules(nextDateRules);
+// --- End Chain of Responsibility for Next Billing Date ---
 
 /**
  * Get the next single billing date
@@ -124,57 +231,13 @@ export function getNextBillingDate(
   rruleString: string,
   after?: Date,
 ): Date | null {
-  const afterDate = after || new Date();
-
-  // Check if there's a COUNT limit - need to handle with proper dtstart
-  const countMatch = rruleString.match(/COUNT=(\d+)/);
-  if (countMatch) {
-    // For COUNT rules, we need to use standard RRule with proper dtstart
-    // Default to a reasonable start date if not specified
-    const startDate = new Date(2024, 0, 1); // Jan 1, 2024
-    const rrule = new RRule({
-      ...parseRRule(rruleString).options,
-      dtstart: startDate,
-    });
-    const result = rrule.after(afterDate, true);
-    return result || null;
-  }
-
-  // For month-end adjustments, we need custom logic
-  const byMonthDayMatch = rruleString.match(/BYMONTHDAY=(-?\d+)/);
-  const freqMatch = rruleString.match(/FREQ=(\w+)/);
-
-  if (byMonthDayMatch && freqMatch && freqMatch[1] === "MONTHLY") {
-    const targetDay = parseInt(byMonthDayMatch[1]);
-    const intervalMatch = rruleString.match(/INTERVAL=(\d+)/);
-    const interval = intervalMatch ? parseInt(intervalMatch[1]) : 1;
-
-    let nextMonth = afterDate.getMonth() + interval;
-    let nextYear = afterDate.getFullYear();
-
-    while (nextMonth > 11) {
-      nextMonth -= 12;
-      nextYear++;
-    }
-
-    const nextDate = adjustMonthEndDate(nextYear, nextMonth, targetDay);
-
-    // If the generated date is still before 'after', try next interval
-    if (nextDate <= afterDate) {
-      nextMonth += interval;
-      while (nextMonth > 11) {
-        nextMonth -= 12;
-        nextYear++;
-      }
-      return adjustMonthEndDate(nextYear, nextMonth, targetDay);
-    }
-
-    return nextDate;
-  }
-
-  // Standard RRule processing
-  const rrule = parseRRule(rruleString);
-  return rrule.after(afterDate, true) || null;
+  return getNextBillingDateWithChain(
+    {
+      rruleString,
+      after: after || new Date(),
+    },
+    () => null,
+  );
 }
 
 /**
@@ -243,6 +306,7 @@ export function getBillingDatesBetween(
     let currentYear = startDate.getFullYear();
     let currentMonth = startDate.getMonth();
 
+    // eslint-disable-next-line no-constant-condition
     while (true) {
       const candidateDate = adjustMonthEndDate(
         currentYear,
@@ -388,18 +452,21 @@ export function intervalToRRule(
   // Add specific day constraints for weekly/monthly/yearly
   if (startDate) {
     switch (interval) {
-      case "WEEK":
+      case "WEEK": {
         const dayOfWeek = startDate.getDay();
         const rruleDay = dayOfWeek === 0 ? 7 : dayOfWeek;
         const dayNames = ["", "MO", "TU", "WE", "TH", "FR", "SA", "SU"];
         rrule += `;BYDAY=${dayNames[rruleDay]}`;
         break;
-      case "MONTH":
+      }
+      case "MONTH": {
         rrule += `;BYMONTHDAY=${startDate.getDate()}`;
         break;
-      case "YEAR":
+      }
+      case "YEAR": {
         rrule += `;BYMONTH=${startDate.getMonth() + 1};BYMONTHDAY=${startDate.getDate()}`;
         break;
+      }
     }
   }
 

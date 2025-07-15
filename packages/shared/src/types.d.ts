@@ -4,6 +4,13 @@ export type Money = {
   amount: Decimal;
   currency: string;
 };
+export type TieredPricing = {
+  tiers: Array<{
+    upTo: number | "inf";
+    unitAmount: string;
+  }>;
+  mode: "graduated" | "volume";
+};
 export declare const CreateCustomerSchema: z.ZodObject<
   {
     email: z.ZodString;
@@ -59,7 +66,7 @@ export declare const CreatePriceSchema: z.ZodObject<
     billingScheme: z.ZodDefault<
       z.ZodEnum<["PER_UNIT", "TIERED", "VOLUME", "GRADUATED"]>
     >;
-    tieredPricing: z.ZodOptional<z.ZodAny>;
+    tieredPricing: z.ZodOptional<TieredPricing>;
     metadata: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
   },
   "strip",
@@ -73,7 +80,7 @@ export declare const CreatePriceSchema: z.ZodObject<
     intervalCount?: number;
     usageType?: "LICENSED" | "METERED";
     billingScheme?: "PER_UNIT" | "TIERED" | "VOLUME" | "GRADUATED";
-    tieredPricing?: any;
+    tieredPricing?: TieredPricing;
   },
   {
     interval?: "DAY" | "WEEK" | "MONTH" | "YEAR";
@@ -84,7 +91,7 @@ export declare const CreatePriceSchema: z.ZodObject<
     intervalCount?: number;
     usageType?: "LICENSED" | "METERED";
     billingScheme?: "PER_UNIT" | "TIERED" | "VOLUME" | "GRADUATED";
-    tieredPricing?: any;
+    tieredPricing?: TieredPricing;
   }
 >;
 export declare const CreateSubscriptionSchema: z.ZodObject<
