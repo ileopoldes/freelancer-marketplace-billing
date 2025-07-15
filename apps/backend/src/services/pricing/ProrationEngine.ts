@@ -18,7 +18,7 @@ export interface PlanChange {
   oldPlanAmount: Money;
   newPlanAmount: Money;
   reason?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ProrationResult {
@@ -188,7 +188,6 @@ export class ProrationEngine {
 
     // Calculate what the full month would have cost on each plan
     const fullOldPlanCost = oldPlanAmount;
-    const fullNewPlanCost = newPlanAmount;
 
     // Calculate savings (difference from staying on old plan)
     const savings = {
@@ -464,14 +463,14 @@ export class ProrationEngine {
   /**
    * Calculate subscription proration with grace periods
    */
-  calculateSubscriptionProrationWithGrace(
-    amount: Money,
-    actualStart: Date,
-    actualEnd: Date,
-    billingStart: Date,
-    billingEnd: Date,
-    gracePeriodDays: number = 0,
-  ): {
+  calculateSubscriptionProrationWithGrace(params: {
+    amount: Money;
+    actualStart: Date;
+    actualEnd: Date;
+    billingStart: Date;
+    billingEnd: Date;
+    gracePeriodDays?: number;
+  }): {
     proratedAmount: Money;
     gracePeriodApplied: boolean;
     effectivePeriod: {
@@ -480,6 +479,14 @@ export class ProrationEngine {
       days: number;
     };
   } {
+    const {
+      amount,
+      actualStart,
+      actualEnd,
+      billingStart,
+      billingEnd,
+      gracePeriodDays = 0,
+    } = params;
     // Apply grace period adjustment
     const graceAdjustedStart = new Date(actualStart);
     graceAdjustedStart.setDate(graceAdjustedStart.getDate() - gracePeriodDays);

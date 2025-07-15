@@ -1,10 +1,5 @@
-import { PrismaClient } from "@prisma/client";
-import {
-  Money,
-  createMoney,
-  addMoney,
-  moneyToDecimalString,
-} from "@marketplace/shared";
+import { PrismaClient, MarketplaceEvent } from "@prisma/client";
+import { Money, createMoney, addMoney } from "@marketplace/shared";
 import {
   PayAsYouGoPricer,
   PayAsYouGoCalculation,
@@ -16,7 +11,7 @@ export interface MarketplaceEventRequest {
   userId: string;
   eventType: "project_posted" | "freelancer_hired" | "custom";
   quantity: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface EventProcessingResult {
@@ -182,7 +177,9 @@ export class MarketplaceEventProcessor {
     fromDate: Date,
     toDate: Date,
     eventType?: string,
-  ): Promise<any[]> {
+  ): Promise<
+    (MarketplaceEvent & { user: { id: string; name: string; email: string } })[]
+  > {
     return this.prisma.marketplaceEvent.findMany({
       where: {
         entityId,

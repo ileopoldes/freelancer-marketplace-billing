@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
-import { PrismaClient } from "@prisma/client";
-import { JobStatus, BillingTrigger } from "@marketplace/shared";
+import { PrismaClient, BillingJob } from "@prisma/client";
+import { JobStatus } from "@marketplace/shared";
 
 export interface BillingJobResult {
   id: string;
@@ -234,7 +234,17 @@ export class BillingJobService {
   async updateJobStatus(
     jobId: string,
     status: string,
-    data: any = {},
+    data: Partial<
+      Pick<
+        BillingJob,
+        | "totalCustomers"
+        | "processedCustomers"
+        | "invoicesCreated"
+        | "errorMessage"
+        | "completedAt"
+        | "metadata"
+      >
+    > = {},
   ): Promise<void> {
     try {
       console.log(`📝 [BILLING-JOB-SERVICE] Updating job status:`);
@@ -245,7 +255,7 @@ export class BillingJobService {
       const result = await this.prisma.billingJob.update({
         where: { id: jobId },
         data: {
-          status: status as any,
+          status: status as JobStatus,
           ...data,
         },
       });
@@ -268,14 +278,31 @@ export class BillingJobService {
   /**
    * Complete a billing job
    */
-  async completeJob(jobId: string, data: any): Promise<void> {
+  async completeJob(
+    jobId: string,
+    data: {
+      processedContracts?: number;
+      invoicesGenerated?: number;
+      totalBilled?: { amount: { toString(): string } };
+      errors?: string[];
+    },
+  ): Promise<void> {
     try {
       console.log(`🏁 [BILLING-JOB-SERVICE] Completing job:`);
       console.log(`   - Job ID: ${jobId}`);
       console.log(`   - Completion Data:`, data);
 
       // Only include valid database fields
-      const updateData: any = {
+      const updateData: Partial<
+        Pick<
+          BillingJob,
+          | "status"
+          | "completedAt"
+          | "processedCustomers"
+          | "invoicesCreated"
+          | "metadata"
+        >
+      > = {
         status: JobStatus.COMPLETED,
         completedAt: new Date(),
         processedCustomers: data.processedContracts || 0,

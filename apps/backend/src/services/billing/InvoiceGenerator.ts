@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Invoice } from "@prisma/client";
 import {
   Money,
   createMoney,
@@ -71,7 +71,7 @@ export class InvoiceGenerator {
     periodStart: Date,
     periodEnd: Date,
     billingCycle: number,
-  ): Promise<any> {
+  ): Promise<Invoice> {
     // Check for existing invoice (idempotency)
     const existingInvoice = await this.prisma.invoice.findFirst({
       where: {
@@ -284,7 +284,7 @@ export class InvoiceGenerator {
   ): Promise<void> {
     const lineData = lineItems.map((item) => ({
       invoiceId,
-      lineType: item.lineType as any,
+      lineType: item.lineType as LineType,
       description: item.description,
       quantity: item.quantity,
       unitAmount: moneyToDecimalString(item.unitAmount),

@@ -1,10 +1,8 @@
 import {
   Money,
   createMoney,
-  divideMoney,
   multiplyMoney,
   subtractMoney,
-  addMoney,
 } from "@marketplace/shared";
 import { PrismaClient } from "@prisma/client";
 
@@ -86,14 +84,23 @@ export class SeatBasedPricer {
   /**
    * Calculate proration for seat changes mid-cycle
    */
-  calculateProration(
-    currentSeatCount: number,
-    newSeatCount: number,
-    pricePerSeat: Money,
-    billingPeriodStart: Date,
-    billingPeriodEnd: Date,
-    changeEffectiveDate: Date = new Date(),
-  ): ProrationCalculation {
+  calculateProration(params: {
+    currentSeatCount: number;
+    newSeatCount: number;
+    pricePerSeat: Money;
+    billingPeriodStart: Date;
+    billingPeriodEnd: Date;
+    changeEffectiveDate?: Date;
+  }): ProrationCalculation {
+    const {
+      currentSeatCount,
+      newSeatCount,
+      pricePerSeat,
+      billingPeriodStart,
+      billingPeriodEnd,
+      changeEffectiveDate = new Date(),
+    } = params;
+
     const daysInBillingPeriod = this.getDaysBetween(
       billingPeriodStart,
       billingPeriodEnd,
@@ -146,14 +153,14 @@ export class SeatBasedPricer {
     );
     const billingPeriodEnd = subscription.nextBillingDate!;
 
-    const proration = this.calculateProration(
-      previousSeatCount,
+    const proration = this.calculateProration({
+      currentSeatCount: previousSeatCount,
       newSeatCount,
       pricePerSeat,
       billingPeriodStart,
       billingPeriodEnd,
-      effectiveDate,
-    );
+      changeEffectiveDate: effectiveDate,
+    });
 
     // Update subscription
     await this.prisma.entitySubscription.update({

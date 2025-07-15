@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { Logger } from "@nestjs/common";
 import { BillingJobService } from "./BillingJobService";
 import { InvoiceGenerator, ContractWithCustomer } from "./InvoiceGenerator";
 import { CreditPackageManager } from "./CreditPackageManager";
@@ -36,6 +37,7 @@ export interface ContractUsage {
  * Main billing engine that orchestrates the complete billing process
  */
 export class MarketplaceBillingEngine {
+  private readonly logger = new Logger(MarketplaceBillingEngine.name);
   private jobService: BillingJobService;
   private invoiceGenerator: InvoiceGenerator;
   private creditPackageManager: CreditPackageManager;
@@ -218,7 +220,7 @@ export class MarketplaceBillingEngine {
    * Calculate billing period for a contract
    */
   private calculateBillingPeriod(
-    contract: any,
+    contract: ContractWithCustomer,
     effectiveDate: Date,
   ): { start: Date; end: Date } {
     // Get the contract's next billing date or use the current date if missing
@@ -233,7 +235,7 @@ export class MarketplaceBillingEngine {
 
     // Validate the date
     if (isNaN(nextBillingDate.getTime())) {
-      console.error("Invalid nextBillingDate for contract", contract.id);
+      this.logger.error(`Invalid nextBillingDate for contract ${contract.id}`);
       nextBillingDate = new Date(effectiveDate);
     }
 
@@ -355,56 +357,8 @@ export class MarketplaceBillingEngine {
         errors: [] as string[],
       };
 
-      for (const contract of contracts) {
-        try {
-          const contractData = {
-            id: contract.id,
-            customerId: contract.customerId,
-            baseFee: contract.baseFee.toString(),
-            minCommitCalls: contract.minCommitCalls,
-            callOverageFee: contract.callOverageFee.toString(),
-            discountRate: contract.discountRate.toString(),
-            billingCycle: contract.billingCycle || 1,
-            customer: {
-              id: contract.customer.id,
-              name: contract.customer.name,
-              email: contract.customer.email,
-              creditBalance: contract.customer.creditBalance.toString(),
-            },
-          };
-
-          const billingPeriod = this.calculateBillingPeriod(
-            contract,
-            effectiveDate,
-          );
-
-          const usage = await this.aggregateUsage(
-            contract.id,
-            billingPeriod.start,
-            billingPeriod.end,
-          );
-
-          const invoice = await this.invoiceGenerator.generateInvoice(
-            contractData,
-            usage.totalUsage,
-            billingPeriod.start,
-            billingPeriod.end,
-            contract.billingCycle,
-          );
-
-          results.processedContracts++;
-          results.invoicesGenerated++;
-          results.totalBilled = addMoney(
-            results.totalBilled,
-            moneyFromDecimalString(invoice.total),
-          );
-        } catch (error) {
-          results.errors.push(
-            `Contract ${contract.id}: ${error instanceof Error ? error.message : "Unknown error"}`,
-          );
-          results.skippedContracts++;
-        }
-      }
+      // Process each contract
+      await this.processContractsForCustomer(contracts, effectiveDate, results);
 
       await this.jobService.completeJob(job.id, {
         processedContracts: results.processedContracts,
@@ -420,6 +374,80 @@ export class MarketplaceBillingEngine {
         error instanceof Error ? error.message : "Unknown error",
       );
       throw error;
+    }
+  }
+
+  /**
+   * Process contracts for a specific customer
+   */
+  private async processContractsForCustomer(
+    contracts: Array<{
+      id: string;
+      customerId: string;
+      baseFee: number;
+      minCommitCalls: number;
+      callOverageFee: number;
+      discountRate: number;
+      billingCycle: number;
+      customer: {
+        id: string;
+        name: string;
+        email: string;
+        creditBalance: number;
+      };
+    }>,
+    effectiveDate: Date,
+    results: BillingRunResult,
+  ): Promise<void> {
+    for (const contract of contracts) {
+      try {
+        const contractData = {
+          id: contract.id,
+          customerId: contract.customerId,
+          baseFee: contract.baseFee.toString(),
+          minCommitCalls: contract.minCommitCalls,
+          callOverageFee: contract.callOverageFee.toString(),
+          discountRate: contract.discountRate.toString(),
+          billingCycle: contract.billingCycle || 1,
+          customer: {
+            id: contract.customer.id,
+            name: contract.customer.name,
+            email: contract.customer.email,
+            creditBalance: contract.customer.creditBalance.toString(),
+          },
+        };
+
+        const billingPeriod = this.calculateBillingPeriod(
+          contract,
+          effectiveDate,
+        );
+
+        const usage = await this.aggregateUsage(
+          contract.id,
+          billingPeriod.start,
+          billingPeriod.end,
+        );
+
+        const invoice = await this.invoiceGenerator.generateInvoice(
+          contractData,
+          usage.totalUsage,
+          billingPeriod.start,
+          billingPeriod.end,
+          contract.billingCycle,
+        );
+
+        results.processedContracts++;
+        results.invoicesGenerated++;
+        results.totalBilled = addMoney(
+          results.totalBilled,
+          moneyFromDecimalString(invoice.total),
+        );
+      } catch (error) {
+        results.errors.push(
+          `Contract ${contract.id}: ${error instanceof Error ? error.message : "Unknown error"}`,
+        );
+        results.skippedContracts++;
+      }
     }
   }
 
@@ -448,9 +476,9 @@ export class MarketplaceBillingEngine {
    * Filter contracts by their recurrence schedule
    */
   async filterContractsBySchedule(
-    contracts: any[],
+    contracts: ContractWithCustomer[],
     effectiveDate: Date,
-  ): Promise<any[]> {
+  ): Promise<ContractWithCustomer[]> {
     return contracts.filter((contract) => {
       if (!contract.recurrenceRule) {
         // Default to monthly billing on the 1st
@@ -460,9 +488,8 @@ export class MarketplaceBillingEngine {
       try {
         return dateMatchesRecurrence(contract.recurrenceRule, effectiveDate);
       } catch (error) {
-        console.warn(
-          `Invalid recurrence rule for contract ${contract.id}:`,
-          error,
+        this.logger.warn(
+          `Invalid recurrence rule for contract ${contract.id}: ${error}`,
         );
         // Fallback to monthly billing on 1st
         return effectiveDate.getDate() === 1;
@@ -567,7 +594,7 @@ export class MarketplaceBillingEngine {
     userId: string,
     eventType: "project_posted" | "freelancer_hired" | "custom",
     quantity: number = 1,
-    metadata?: Record<string, any>,
+    metadata?: Record<string, unknown>,
   ) {
     return this.marketplaceEventProcessor.processEvent({
       entityId,

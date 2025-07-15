@@ -419,14 +419,16 @@ export class CreditPackageManager {
   /**
    * Create a new credit for a customer
    */
-  async createCredit(
-    customerId: string,
-    amount: Money,
-    type: CreditType,
-    description: string,
-    expirationDays?: number,
-    metadata?: Record<string, unknown>,
-  ): Promise<Credit> {
+  async createCredit(params: {
+    customerId: string;
+    amount: Money;
+    type: CreditType;
+    description: string;
+    expirationDays?: number;
+    metadata?: Record<string, unknown>;
+  }): Promise<Credit> {
+    const { customerId, amount, type, description, expirationDays, metadata } =
+      params;
     const expiresAt = expirationDays
       ? new Date(Date.now() + expirationDays * 24 * 60 * 60 * 1000)
       : undefined;
@@ -498,18 +500,18 @@ export class CreditPackageManager {
     originalInvoiceId: string,
     reason: string,
   ): Promise<Credit> {
-    return this.createCredit(
+    return this.createCredit({
       customerId,
-      refundAmount,
-      CreditType.REFUND,
-      `Refund for invoice: ${reason}`,
-      365, // Refund credits expire in 1 year
-      {
+      amount: refundAmount,
+      type: CreditType.REFUND,
+      description: `Refund for invoice: ${reason}`,
+      expirationDays: 365, // Refund credits expire in 1 year
+      metadata: {
         originalInvoiceId,
         refundReason: reason,
         issuedAt: new Date().toISOString(),
       },
-    );
+    });
   }
 
   /**
@@ -521,17 +523,17 @@ export class CreditPackageManager {
     promotionName: string,
     expirationDays: number = 90,
   ): Promise<Credit> {
-    return this.createCredit(
+    return this.createCredit({
       customerId,
-      creditAmount,
-      CreditType.PROMOTIONAL,
-      `Promotional credit: ${promotionName}`,
+      amount: creditAmount,
+      type: CreditType.PROMOTIONAL,
+      description: `Promotional credit: ${promotionName}`,
       expirationDays,
-      {
+      metadata: {
         promotionName,
         issuedAt: new Date().toISOString(),
       },
-    );
+    });
   }
 
   /**
@@ -544,30 +546,30 @@ export class CreditPackageManager {
     reason: string,
   ): Promise<{ debitCredit: Credit; creditCredit: Credit }> {
     // Create negative credit for source customer
-    const debitCredit = await this.createCredit(
-      fromCustomerId,
-      createMoney(amount.amount.negated().toString(), amount.currency),
-      CreditType.ADJUSTMENT,
-      `Credit transfer to customer: ${reason}`,
-      undefined,
-      {
+    const debitCredit = await this.createCredit({
+      customerId: fromCustomerId,
+      amount: createMoney(amount.amount.negated().toString(), amount.currency),
+      type: CreditType.ADJUSTMENT,
+      description: `Credit transfer to customer: ${reason}`,
+      expirationDays: undefined,
+      metadata: {
         transferTo: toCustomerId,
         transferReason: reason,
       },
-    );
+    });
 
     // Create positive credit for destination customer
-    const creditCredit = await this.createCredit(
-      toCustomerId,
+    const creditCredit = await this.createCredit({
+      customerId: toCustomerId,
       amount,
-      CreditType.ADJUSTMENT,
-      `Credit transfer from customer: ${reason}`,
-      undefined,
-      {
+      type: CreditType.ADJUSTMENT,
+      description: `Credit transfer from customer: ${reason}`,
+      expirationDays: undefined,
+      metadata: {
         transferFrom: fromCustomerId,
         transferReason: reason,
       },
-    );
+    });
 
     return { debitCredit, creditCredit };
   }
@@ -771,19 +773,19 @@ export class CreditPackageManager {
 
     for (const credit of appliedCredits) {
       // Create a new credit to reverse the application
-      const reversalCredit = await this.createCredit(
-        credit.customerId,
-        moneyFromDecimalString(credit.amount.toString()),
-        CreditType.ADJUSTMENT,
-        `Reversal of credit application: ${reason}`,
-        undefined,
-        {
+      const reversalCredit = await this.createCredit({
+        customerId: credit.customerId,
+        amount: moneyFromDecimalString(credit.amount.toString()),
+        type: CreditType.ADJUSTMENT,
+        description: `Reversal of credit application: ${reason}`,
+        expirationDays: undefined,
+        metadata: {
           originalCreditId: credit.id,
           reversalReason: reason,
           reversedInvoiceId: invoiceId,
           reversedAt: new Date().toISOString(),
         },
-      );
+      });
 
       reversedCredits.push(reversalCredit);
     }
