@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Credit, CreditPackage } from "@prisma/client";
 import {
   Money,
   createMoney,
@@ -25,13 +25,13 @@ export interface CreditRule {
   expirationDays?: number; // Days until credit expires
   maxApplicationPerInvoice?: Money; // Maximum credit that can be applied per invoice
   applicableToTypes?: string[]; // Which invoice line types this applies to
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface CreditCondition {
   field: "customer_type" | "invoice_amount" | "credit_age" | "billing_cycle";
   operator: "eq" | "gte" | "lte" | "gt" | "lt" | "in";
-  value: any;
+  value: string | number | boolean | Date;
 }
 
 export interface CreditApplicationResult {
@@ -124,7 +124,7 @@ export class CreditPackageManager {
   async purchaseCreditPackage(
     entityId: string,
     packageId: string,
-    purchasedBy: string,
+    _purchasedBy: string,
   ): Promise<CreditPackagePurchase> {
     // Get the credit package details
     const creditPackage = await this.prisma.creditPackage.findUnique({
@@ -218,7 +218,7 @@ export class CreditPackageManager {
     userId: string,
     eventType: string,
     creditAmount: Money,
-    reason: string,
+    _reason: string,
   ): Promise<CreditDeductionResult> {
     const balance = await this.getEntityCreditBalance(entityId);
 
@@ -292,7 +292,7 @@ export class CreditPackageManager {
   /**
    * Get all available credit packages
    */
-  async getAvailableCreditPackages(): Promise<any[]> {
+  async getAvailableCreditPackages(): Promise<CreditPackage[]> {
     return this.prisma.creditPackage.findMany({
       where: { active: true },
       orderBy: { price: "asc" },
@@ -425,8 +425,8 @@ export class CreditPackageManager {
     type: CreditType,
     description: string,
     expirationDays?: number,
-    metadata?: Record<string, any>,
-  ): Promise<any> {
+    metadata?: Record<string, unknown>,
+  ): Promise<Credit> {
     const expiresAt = expirationDays
       ? new Date(Date.now() + expirationDays * 24 * 60 * 60 * 1000)
       : undefined;
@@ -497,7 +497,7 @@ export class CreditPackageManager {
     refundAmount: Money,
     originalInvoiceId: string,
     reason: string,
-  ): Promise<any> {
+  ): Promise<Credit> {
     return this.createCredit(
       customerId,
       refundAmount,
@@ -520,7 +520,7 @@ export class CreditPackageManager {
     creditAmount: Money,
     promotionName: string,
     expirationDays: number = 90,
-  ): Promise<any> {
+  ): Promise<Credit> {
     return this.createCredit(
       customerId,
       creditAmount,
@@ -542,7 +542,7 @@ export class CreditPackageManager {
     toCustomerId: string,
     amount: Money,
     reason: string,
-  ): Promise<{ debitCredit: any; creditCredit: any }> {
+  ): Promise<{ debitCredit: Credit; creditCredit: Credit }> {
     // Create negative credit for source customer
     const debitCredit = await this.createCredit(
       fromCustomerId,
@@ -575,7 +575,7 @@ export class CreditPackageManager {
   /**
    * Get available credits for a customer
    */
-  private async getAvailableCredits(customerId: string): Promise<any[]> {
+  private async getAvailableCredits(customerId: string): Promise<Credit[]> {
     return this.prisma.credit.findMany({
       where: {
         customerId,
@@ -591,13 +591,13 @@ export class CreditPackageManager {
   /**
    * Filter out expired credits
    */
-  private filterExpiredCredits(credits: any[]): {
-    validCredits: any[];
-    expiredCredits: any[];
+  private filterExpiredCredits(credits: Credit[]): {
+    validCredits: Credit[];
+    expiredCredits: Credit[];
   } {
     const now = new Date();
-    const validCredits: any[] = [];
-    const expiredCredits: any[] = [];
+    const validCredits: Credit[] = [];
+    const expiredCredits: Credit[] = [];
 
     for (const credit of credits) {
       if (credit.expiresAt && credit.expiresAt <= now) {
@@ -613,7 +613,7 @@ export class CreditPackageManager {
   /**
    * Sort credits according to application rules
    */
-  private sortCreditsByRules(credits: any[]): any[] {
+  private sortCreditsByRules(credits: Credit[]): Credit[] {
     return credits.sort((a, b) => {
       // Sort by credit type priority first (promotional > refund > manual > adjustment)
       const typePriority = {
@@ -650,9 +650,9 @@ export class CreditPackageManager {
    * Check if a credit can be applied based on rules
    */
   private canApplyCredit(
-    credit: any,
-    invoiceAmount: Money,
-    lineTypes?: string[],
+    _credit: Credit,
+    _invoiceAmount: Money,
+    _lineTypes?: string[],
   ): boolean {
     // Add rule-based logic here
     // For now, allow all credits to be applied
@@ -755,7 +755,7 @@ export class CreditPackageManager {
   async reverseCreditApplication(
     invoiceId: string,
     reason: string,
-  ): Promise<any[]> {
+  ): Promise<Credit[]> {
     // Find all credits applied to this invoice
     const appliedCredits = await this.prisma.credit.findMany({
       where: {
@@ -767,7 +767,7 @@ export class CreditPackageManager {
       },
     });
 
-    const reversedCredits: any[] = [];
+    const reversedCredits: Credit[] = [];
 
     for (const credit of appliedCredits) {
       // Create a new credit to reverse the application
