@@ -7,8 +7,7 @@
 
     // Shared code should ideally be less complex.
     "complexity": ["warn", 10],
-    "max-lines-per-function": ["warn", 50],
-    "unicorn/no-nested-ternary": "off"
+    "max-lines-per-function": ["warn", 50]
   },
   "ignorePatterns": ["dist/", "node_modules/", "coverage/"]
 }

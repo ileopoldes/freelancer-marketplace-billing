@@ -1,6 +1,12 @@
 import { Controller, Get, Post, Body, Param, HttpException, HttpStatus } from '@nestjs/common';
 import { BillingService } from './billing.service';
 
+interface CreateBillingJobRequest {
+  entityId?: string;
+  type: 'manual' | 'automatic';
+  effectiveDate?: string;
+}
+
 @Controller('billing')
 export class BillingController {
   constructor(private readonly billingService: BillingService) {}
@@ -19,7 +25,7 @@ export class BillingController {
   }
 
   @Post('jobs')
-  async createBillingJob(@Body() body: any) {
+  async createBillingJob(@Body() body: CreateBillingJobRequest) {
     try {
       const job = await this.billingService.createBillingJob(body);
       return { job };

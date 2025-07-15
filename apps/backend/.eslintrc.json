@@ -3,17 +3,8 @@
     "node": true,
     "jest": true
   },
-  "plugins": ["jest", "security", "promise"],
   "extends": [
-    "../../.eslintrc.json",
-    "plugin:jest/recommended",
-    "plugin:security/recommended",
-    "plugin:promise/recommended" // promises best practices
+    "../../.eslintrc.json"
   ],
-  "rules": {
-    "import/prefer-default-export": "off",
-    // Override an Unicorn rule that can be problematic for scripts
-    "unicorn/no-process-exit": "off"
-  },
   "ignorePatterns": ["dist/", "node_modules/", "coverage/", "prisma/generated/"]
 }

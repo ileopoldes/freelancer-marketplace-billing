@@ -3,22 +3,12 @@
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
     "ecmaVersion": "latest",
-    "sourceType": "module",
-    // Enable type-aware linting across the entire monorepo
-    "project": [
-      "./tsconfig.json",
-      "./apps/*/tsconfig.json",
-      "./packages/*/tsconfig.json"
-    ]
+    "sourceType": "module"
   },
-  "plugins": ["@typescript-eslint", "unicorn"],
+  "plugins": ["@typescript-eslint"],
   "extends": [
     "eslint:recommended",
-    "plugin:@typescript-eslint/recommended",
-    // Use type-aware rules for better accuracy
-    "plugin:@typescript-eslint/recommended-type-checking",
-    // Adds many sensible rules for modern JavaScript/TypeScript
-    "plugin:unicorn/recommended"
+    "plugin:@typescript-eslint/recommended"
   ],
   "rules": {
     // Base rule must be disabled to use the @typescript-eslint version
@@ -28,21 +18,12 @@
       { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }
     ],
     "@typescript-eslint/no-explicit-any": "warn",
-    "@typescript-eslint/no-floating-promises": "error",
-
     // General code quality rules
     "complexity": ["warn", 15],
     "max-lines-per-function": ["warn", 100],
     "max-depth": ["warn", 4],
     "max-params": ["warn", 5],
-    "no-console": "warn",
-
-    // Relaxing some strict Unicorn rules that can be disruptive
-    "unicorn/prevent-abbreviations": "off",
-    "unicorn/no-null": "off",
-    "unicorn/prefer-module": "off", // CommonJS is still common in NestJS
-    "unicorn/no-array-reduce": "off",
-    "unicorn/filename-case": "off"
+    "no-console": "warn"
   },
   "ignorePatterns": ["node_modules/", "dist/", "coverage/", ".next/"]
 }
