@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useCustomers } from "@/hooks/api";
 import { formatCurrency, formatDate, debounce } from "@/lib/utils";
-import type { Customer } from "@/lib/api";
 
 export function CustomerDashboard() {
   const { data: customers = [], isLoading, isError } = useCustomers();

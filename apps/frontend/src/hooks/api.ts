@@ -2,7 +2,6 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
-import type { Customer, Invoice, BillingJob } from "@/lib/api";
 
 // Query keys
 export const queryKeys = {
