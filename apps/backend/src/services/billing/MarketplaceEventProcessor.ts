@@ -73,7 +73,9 @@ export class MarketplaceEventProcessor {
         unitPrice: calculation.finalAmount.amount
           .div(eventRequest.quantity)
           .toNumber(),
-        metadata: eventRequest.metadata || {},
+        metadata: eventRequest.metadata
+          ? JSON.stringify(eventRequest.metadata)
+          : null,
       },
     });
 
@@ -235,7 +237,7 @@ export class MarketplaceEventProcessor {
         acc[event.eventType].count += event.quantity;
         acc[event.eventType].totalCost = addMoney(
           acc[event.eventType].totalCost,
-          createMoney((event.unitPrice * event.quantity).toString()),
+          createMoney((Number(event.unitPrice) * event.quantity).toString()),
         );
         return acc;
       },
@@ -293,6 +295,7 @@ export class MarketplaceEventProcessor {
     // Validate entity exists
     const entity = await this.prisma.entity.findUnique({
       where: { id: eventRequest.entityId },
+      select: { id: true },
     });
 
     if (!entity) {

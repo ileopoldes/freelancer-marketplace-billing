@@ -324,7 +324,7 @@ export class CreditPackageManager {
         continue;
       }
 
-      const creditAmount = moneyFromDecimalString(credit.amount);
+      const creditAmount = moneyFromDecimalString(credit.amount.toString());
       const applicableAmount = {
         amount: creditAmount.amount.lessThanOrEqualTo(
           remainingInvoiceAmount.amount,
@@ -390,7 +390,7 @@ export class CreditPackageManager {
         amount: moneyToDecimalString(amount),
         type,
         description,
-        metadata: metadata || {},
+        metadata: metadata ? JSON.stringify(metadata) : null,
       },
     });
   }

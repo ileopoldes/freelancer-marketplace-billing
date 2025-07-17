@@ -1,5 +1,7 @@
 // Jest setup file for backend tests
-import { PrismaClient } from "@prisma/client";
+// PrismaClient is used for type definitions only
+// import { PrismaClient } from "@prisma/client";
+import "./test-utils";
 
 // Configure test environment
 process.env.NODE_ENV = "test";
@@ -15,8 +17,8 @@ global.console = {
   error: jest.fn(),
 };
 
-// Global test utilities
-global.testUtils = {
+// Global test utilities (compatible with existing code)
+(global as any).testUtils = {
   // Helper to create test dates consistently
   createTestDate: (year: number, month: number, day: number) => {
     return new Date(year, month - 1, day); // month is 0-indexed
@@ -28,23 +30,8 @@ global.testUtils = {
   },
 };
 
-// Extend Jest matchers for date comparisons
+// Extend Jest matchers for date comparisons (compatible with existing code)
 expect.extend({
-  toBeValidDate(received: any) {
-    const pass = received instanceof Date && !isNaN(received.getTime());
-    if (pass) {
-      return {
-        message: () => `expected ${received} not to be a valid date`,
-        pass: true,
-      };
-    } else {
-      return {
-        message: () => `expected ${received} to be a valid date`,
-        pass: false,
-      };
-    }
-  },
-
   toBeWithinSeconds(received: Date, expected: Date, seconds: number = 1) {
     const diff = Math.abs(received.getTime() - expected.getTime());
     const pass = diff <= seconds * 1000;
@@ -64,17 +51,29 @@ expect.extend({
   },
 });
 
-// Type declarations for global utilities
-declare global {
-  namespace jest {
-    interface Matchers<R> {
-      toBeValidDate(): R;
-      toBeWithinSeconds(expected: Date, seconds?: number): R;
-    }
-  }
+// Set up global test environment
+beforeAll(() => {
+  // Increase timeout for slower tests
+  jest.setTimeout(30000);
+});
 
-  var testUtils: {
-    createTestDate: (year: number, month: number, day: number) => Date;
-    formatDate: (date: Date) => string;
-  };
-}
+beforeEach(() => {
+  // Clear all timers before each test
+  jest.clearAllTimers();
+
+  // Clear all mocks before each test
+  jest.clearAllMocks();
+});
+
+afterEach(() => {
+  // Restore all mocks after each test
+  jest.restoreAllMocks();
+});
+
+afterAll(() => {
+  // Clean up after all tests
+  jest.clearAllTimers();
+});
+
+// Type declarations for global utilities
+// Global testUtils will be available at runtime

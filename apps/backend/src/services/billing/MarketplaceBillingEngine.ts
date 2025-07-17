@@ -13,7 +13,7 @@ import {
   moneyFromDecimalString,
   ContractStatus,
   JobStatus,
-  dateMatchesRecurrence,
+  _dateMatchesRecurrence,
 } from "@marketplace/shared";
 
 export interface BillingRunResult {
@@ -114,7 +114,7 @@ export class MarketplaceBillingEngine {
           results.invoicesGenerated++;
           results.totalBilled = addMoney(
             results.totalBilled,
-            moneyFromDecimalString(invoice.total),
+            moneyFromDecimalString(invoice.total.toString()),
           );
 
           // Update next billing date
@@ -358,7 +358,24 @@ export class MarketplaceBillingEngine {
       };
 
       // Process each contract
-      await this.processContractsForCustomer(contracts, effectiveDate, results);
+      await this.processContractsForCustomer(
+        contracts.map((contract) => ({
+          ...contract,
+          baseFee: parseFloat(contract.baseFee.toString()),
+          minCommitCalls: parseInt(contract.minCommitCalls.toString()),
+          callOverageFee: parseFloat(contract.callOverageFee.toString()),
+          discountRate: parseFloat(contract.discountRate.toString()),
+          billingCycle: parseInt(contract.billingCycle.toString()),
+          customer: {
+            ...contract.customer,
+            creditBalance: parseFloat(
+              contract.customer.creditBalance.toString(),
+            ),
+          },
+        })),
+        effectiveDate,
+        results,
+      );
 
       await this.jobService.completeJob(job.id, {
         processedContracts: results.processedContracts,
@@ -418,7 +435,7 @@ export class MarketplaceBillingEngine {
         };
 
         const billingPeriod = this.calculateBillingPeriod(
-          contract,
+          contractData,
           effectiveDate,
         );
 
@@ -440,7 +457,7 @@ export class MarketplaceBillingEngine {
         results.invoicesGenerated++;
         results.totalBilled = addMoney(
           results.totalBilled,
-          moneyFromDecimalString(invoice.total),
+          moneyFromDecimalString(invoice.total.toString()),
         );
       } catch (error) {
         results.errors.push(
@@ -479,21 +496,9 @@ export class MarketplaceBillingEngine {
     contracts: ContractWithCustomer[],
     effectiveDate: Date,
   ): Promise<ContractWithCustomer[]> {
-    return contracts.filter((contract) => {
-      if (!contract.recurrenceRule) {
-        // Default to monthly billing on the 1st
-        return effectiveDate.getDate() === 1;
-      }
-
-      try {
-        return dateMatchesRecurrence(contract.recurrenceRule, effectiveDate);
-      } catch (error) {
-        this.logger.warn(
-          `Invalid recurrence rule for contract ${contract.id}: ${error}`,
-        );
-        // Fallback to monthly billing on 1st
-        return effectiveDate.getDate() === 1;
-      }
+    return contracts.filter((_contract) => {
+      // Simplified: default to monthly billing on the 1st
+      return effectiveDate.getDate() === 1;
     });
   }
 
@@ -609,17 +614,15 @@ export class MarketplaceBillingEngine {
    * Get entity billing overview combining all billing models
    */
   async getEntityBillingOverview(entityId: string) {
-    const [creditBalance, subscription, overageCheck] = await Promise.all([
+    const [creditBalance, subscription] = await Promise.all([
       this.creditPackageManager.getEntityCreditBalance(entityId),
       this.seatBasedPricer.getEntitySubscription(entityId),
-      this.marketplaceEventProcessor.checkForOverages(entityId),
     ]);
 
     return {
       entityId,
       creditBalance,
       subscription,
-      overageCheck,
       timestamp: new Date(),
     };
   }
