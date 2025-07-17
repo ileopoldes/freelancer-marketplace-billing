@@ -6,10 +6,7 @@
     "sourceType": "module"
   },
   "plugins": ["@typescript-eslint"],
-  "extends": [
-    "eslint:recommended",
-    "plugin:@typescript-eslint/recommended"
-  ],
+  "extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended"],
   "rules": {
     // Base rule must be disabled to use the @typescript-eslint version
     "no-unused-vars": "off",
@@ -25,5 +22,18 @@
     "max-params": ["warn", 5],
     "no-console": "warn"
   },
-  "ignorePatterns": ["node_modules/", "dist/", "coverage/", ".next/"]
+  "ignorePatterns": ["node_modules/", "dist/", "coverage/", ".next/"],
+  "overrides": [
+    {
+      "files": [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/*.spec.ts",
+        "**/*.spec.tsx"
+      ],
+      "rules": {
+        "max-lines-per-function": ["warn", 200]
+      }
+    }
+  ]
 }
