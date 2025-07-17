@@ -20,9 +20,9 @@
 │  │  │ PayAsYouGo      │  │ CreditPackage   │  │ SeatBased       │        │ │
 │  │  │ Pricer          │  │ Manager         │  │ Pricer          │        │ │
 │  │  │                 │  │                 │  │                 │        │ │
-│  │  │ • Event pricing │  │ • Credit limits │  │ • Proration     │        │ │
-│  │  │ • Bulk discounts│  │ • Expiration    │  │ • Seat tracking │        │ │
-│  │  │ • Tiered rates  │  │ • Deduction     │  │ • Billing cycles│        │ │
+│  │  │ • Event pricing │  │ • Credit limits │  │ • Seat tracking │        │ │
+│  │  │ • Bulk discounts│  │ • Deduction     │  │ • Monthly billing│        │ │
+│  │  │ • Tiered rates  │  │ • Balance mgmt  │  │ • Simplified    │        │ │
 │  │  └─────────────────┘  └─────────────────┘  └─────────────────┘        │ │
 │  │                                                                         │ │
 │  │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐        │ │
@@ -59,22 +59,21 @@
 ```
 Organization (Company)
     │
-    ├── Entity (Company US)
+    ├── Entity (Company US) [Billing Model: SEAT_BASED]
     │   ├── Team (Engineering)
     │   │   ├── User (Alice) [Credit Limit: $500]
     │   │   └── User (Bob)   [Credit Limit: $300]
     │   │
     │   ├── EntitySubscription (10 seats, $50/month)
-    │   ├── EntityCreditBalance (5000 credits, expires 2024-12-31)
+    │   ├── EntityCreditBalance (5000 credits, no expiration)
     │   └── MarketplaceEvent (project_posted, freelancer_hired)
     │
-    └── Entity (Company UK)
+    └── Entity (Company UK) [Billing Model: PAY_AS_YOU_GO]
         ├── Team (Sales)
         │   ├── User (Carol) [Credit Limit: $200]
         │   └── User (Alice) [Credit Limit: $400] # Same user, different entity
         │
-        ├── EntitySubscription (5 seats, $50/month)
-        ├── EntityCreditBalance (2000 credits, expires 2024-11-30)
+        ├── EntityCreditBalance (2000 credits, no expiration)
         └── MarketplaceEvent (project_posted, freelancer_hired)
 ```
 
@@ -190,30 +189,35 @@ Organization (Company)
 ## Key Design Decisions
 
 ### 1. Multi-Tenant Architecture
+
 - **Organization → Entity → Team → User** hierarchy
 - Entity-level billing isolation
 - Users can belong to multiple entities
 - Credit limits are per user per entity
 
-### 2. Billing Model Flexibility
+### 2. Simplified Billing Model (Current Implementation)
+
 - **Pay-as-you-go**: Event-based billing with tiered pricing
-- **Prepaid credits**: Entity-level balances with expiration
-- **Seat-based**: Subscription with proration support
-- **Mixed models**: Entities can use multiple billing types
+- **Prepaid credits**: Entity-level balances without expiration
+- **Seat-based**: Subscription with simplified billing cycles
+- **Single model per entity**: Each entity uses one billing model at a time
 
 ### 3. Event-Driven Design
+
 - Real-time event processing
 - Billing status propagation
 - Permission system integration via webhooks
 - Overage detection and notifications
 
 ### 4. Technology Stack
+
 - **Backend**: NestJS with TypeScript
 - **Database**: PostgreSQL with Prisma ORM
 - **Frontend**: Next.js with React
 - **Architecture**: Clean separation of concerns
 
 ### 5. Data Isolation
+
 - Row-level security at entity level
 - Proper foreign key constraints
 - Audit trails for billing events
