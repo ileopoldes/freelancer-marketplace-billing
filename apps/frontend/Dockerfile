@@ -1,4 +1,4 @@
-# Production Dockerfile for BillForge Frontend (Monorepo)
+# Production Dockerfile for Freelancer Marketplace Billing Frontend (Monorepo)
 FROM node:18-slim AS base
 
 # Install dependencies needed for building

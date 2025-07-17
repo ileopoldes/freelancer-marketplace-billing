@@ -1,4 +1,4 @@
-# Production Dockerfile for BillForge Backend (Monorepo)
+# Production Dockerfile for Freelancer Marketplace Billing Backend (Monorepo)
 FROM node:18-slim AS base
 
 # Install dependencies needed for building and Prisma
@@ -42,21 +42,21 @@ ENV NODE_ENV=production
 ENV PORT=3001
 
 RUN groupadd --system --gid 1001 nodejs
-RUN useradd --system --uid 1001 billforge
+RUN useradd --system --uid 1001 marketplace
 
 # Copy built application from backend
-COPY --from=base --chown=billforge:nodejs /app/apps/backend/dist ./dist
-COPY --from=base --chown=billforge:nodejs /app/apps/backend/package*.json ./
-COPY --from=base --chown=billforge:nodejs /app/apps/backend/prisma ./prisma
+COPY --from=base --chown=marketplace:nodejs /app/apps/backend/dist ./dist
+COPY --from=base --chown=marketplace:nodejs /app/apps/backend/package*.json ./
+COPY --from=base --chown=marketplace:nodejs /app/apps/backend/prisma ./prisma
 
 # Copy built shared package
-COPY --from=base --chown=billforge:nodejs /app/packages/shared/dist ./packages/shared/dist
-COPY --from=base --chown=billforge:nodejs /app/packages/shared/package*.json ./packages/shared/
+COPY --from=base --chown=marketplace:nodejs /app/packages/shared/dist ./packages/shared/dist
+COPY --from=base --chown=marketplace:nodejs /app/packages/shared/package*.json ./packages/shared/
 
 # Copy all node_modules including shared package (already built and installed)
-COPY --from=base --chown=billforge:nodejs /app/node_modules ./node_modules
+COPY --from=base --chown=marketplace:nodejs /app/node_modules ./node_modules
 
-USER billforge
+USER marketplace
 
 EXPOSE 3001
 

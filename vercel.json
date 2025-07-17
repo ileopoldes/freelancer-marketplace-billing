@@ -1,0 +1,34 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "apps/backend/package.json",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": ["apps/backend/**", "packages/shared/**"]
+      }
+    },
+    {
+      "src": "apps/frontend/package.json",
+      "use": "@vercel/next",
+      "config": {
+        "includeFiles": ["apps/frontend/**", "packages/shared/**"]
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "apps/backend/src/main.ts"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "apps/frontend/$1"
+    }
+  ],
+  "env": {
+    "DATABASE_URL": "@database-url",
+    "JWT_SECRET": "@jwt-secret",
+    "NODE_ENV": "production"
+  }
+}

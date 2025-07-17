@@ -4,10 +4,11 @@ import { createMoney, moneyToDecimalString } from "@marketplace/shared";
 const prisma = new PrismaClient();
 
 // Demo data configuration
-const DEMO_ORGS_COUNT = 10;
-const DEMO_ENTITIES_PER_ORG = 3;
-const DEMO_USERS_COUNT = 20;
-const USAGE_DAYS = 30; // Generate 1 month of usage data
+const DEMO_ORGS_COUNT = 3;
+const DEMO_ENTITIES_PER_ORG = 2;
+const DEMO_USERS_COUNT = 10;
+const DEMO_TEAMS_PER_ENTITY = 2;
+const DEMO_USERS_PER_ENTITY = 3;
 
 // Seed Functions
 async function seedOrganizations() {
@@ -169,274 +170,170 @@ function generateEmail(
   return `${firstName.toLowerCase()}.${lastName.toLowerCase()}@${domain}`;
 }
 
-function generateUsagePattern(): number[] {
-  // Generate realistic daily usage patterns
-  const baseUsage = randomInt(100, 5000);
-  const pattern = [];
+async function seedTeams(entities: any[]) {
+  console.log("👥 Seeding teams...");
 
-  for (let i = 0; i < USAGE_DAYS; i++) {
-    // Simulate business days vs weekends
-    const dayOfWeek = i % 7;
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-
-    let dailyUsage;
-    if (isWeekend) {
-      // Lower usage on weekends
-      dailyUsage = Math.floor(baseUsage * randomFloat(0.1, 0.3));
-    } else {
-      // Normal business day usage with some variation
-      dailyUsage = Math.floor(baseUsage * randomFloat(0.8, 1.5));
+  for (const entity of entities) {
+    const teams = [];
+    for (let i = 0; i < DEMO_TEAMS_PER_ENTITY; i++) {
+      teams.push({
+        entityId: entity.id,
+        name: `Team ${i + 1}`,
+        description: `Team ${i + 1} for ${entity.name}`,
+      });
     }
-
-    // Add some spikes (10% chance of high usage day)
-    if (Math.random() < 0.1) {
-      dailyUsage = Math.floor(dailyUsage * randomFloat(3, 8));
-    }
-
-    pattern.push(Math.max(0, dailyUsage));
+    await prisma.team.createMany({ data: teams });
   }
-
-  return pattern;
 }
 
-async function seedPriceBooks() {
-  console.log("🏷️  Seeding price books...");
+async function seedEntityUsers(entities: any[], users: any[]) {
+  console.log("🔗 Seeding entity users...");
 
-  const priceBooks = [
+  for (const entity of entities) {
+    const entityUsers = [];
+    const shuffledUsers = [...users].sort(() => 0.5 - Math.random());
+    const selectedUsers = shuffledUsers.slice(0, DEMO_USERS_PER_ENTITY);
+
+    for (let i = 0; i < selectedUsers.length; i++) {
+      const user = selectedUsers[i];
+      entityUsers.push({
+        entityId: entity.id,
+        userId: user.id,
+        role: i === 0 ? "ADMIN" : randomChoice(["MEMBER", "BILLING_MANAGER"]),
+        creditLimit: moneyToDecimalString(
+          createMoney(randomFloat(100, 1000).toFixed(2)),
+        ),
+        seatAllocation: randomInt(1, 3),
+      });
+    }
+    await prisma.entityUser.createMany({ data: entityUsers });
+  }
+}
+
+async function seedCreditPackages() {
+  console.log("💳 Seeding credit packages...");
+
+  const creditPackages = [
     {
-      name: "Basic Plan",
-      description: "Perfect for small teams and startups",
-      baseFee: moneyToDecimalString(createMoney("99.00")),
-      tier1Limit: 1000,
-      tier1Price: moneyToDecimalString(createMoney("0")),
-      tier2Limit: 1000000,
-      tier2Price: moneyToDecimalString(createMoney("0.002")),
-      tier3Price: moneyToDecimalString(createMoney("0.001")),
-      minCommit: 10000,
-      minCommitFee: moneyToDecimalString(createMoney("20.00")),
+      name: "Starter Package",
+      creditsAmount: moneyToDecimalString(createMoney("100.00")),
+      price: moneyToDecimalString(createMoney("95.00")),
+      description: "Perfect for small projects",
     },
     {
-      name: "Pro Plan",
-      description: "For growing businesses with higher usage",
-      baseFee: moneyToDecimalString(createMoney("199.00")),
-      tier1Limit: 5000,
-      tier1Price: moneyToDecimalString(createMoney("0")),
-      tier2Limit: 2000000,
-      tier2Price: moneyToDecimalString(createMoney("0.0015")),
-      tier3Price: moneyToDecimalString(createMoney("0.0008")),
-      minCommit: 25000,
-      minCommitFee: moneyToDecimalString(createMoney("37.50")),
+      name: "Professional Package",
+      creditsAmount: moneyToDecimalString(createMoney("500.00")),
+      price: moneyToDecimalString(createMoney("450.00")),
+      description: "Great for growing businesses",
     },
     {
-      name: "Enterprise Plan",
-      description: "Custom pricing for large organizations",
-      baseFee: moneyToDecimalString(createMoney("499.00")),
-      tier1Limit: 10000,
-      tier1Price: moneyToDecimalString(createMoney("0")),
-      tier2Limit: 5000000,
-      tier2Price: moneyToDecimalString(createMoney("0.001")),
-      tier3Price: moneyToDecimalString(createMoney("0.0005")),
-      minCommit: 100000,
-      minCommitFee: moneyToDecimalString(createMoney("100.00")),
+      name: "Enterprise Package",
+      creditsAmount: moneyToDecimalString(createMoney("2000.00")),
+      price: moneyToDecimalString(createMoney("1800.00")),
+      description: "For large organizations",
     },
   ];
 
-  for (const priceBook of priceBooks) {
-    // await prisma.priceBook.create({ data: priceBook });
-  }
-
-  console.log(`   Created ${priceBooks.length} price books`);
+  await prisma.creditPackage.createMany({ data: creditPackages });
+  console.log(`   Created ${creditPackages.length} credit packages`);
 }
 
-async function seedCustomers() {
-  console.log("👥 Seeding customers...");
+async function seedEntityCreditBalances(entities: any[]) {
+  console.log("💰 Seeding entity credit balances...");
 
-  const customers = [];
+  const balances = [];
+  for (const entity of entities) {
+    const totalCredits = randomFloat(50, 500);
+    const usedCredits = randomFloat(0, totalCredits * 0.7);
 
-  for (let i = 0; i < DEMO_CUSTOMERS_COUNT; i++) {
-    const firstName = randomChoice(firstNames);
-    const lastName = randomChoice(lastNames);
-    const company = randomChoice(companies);
-    const email = generateEmail(firstName, lastName, company);
-
-    // Some customers have credit balances
-    const hasCreditBalance = Math.random() < 0.2; // 20% chance
-    const creditBalance = hasCreditBalance
-      ? moneyToDecimalString(createMoney(randomFloat(10, 500).toFixed(2)))
-      : moneyToDecimalString(createMoney("0"));
-
-    customers.push({
-      name: `${firstName} ${lastName}`,
-      email,
-      company,
-      address: `${randomInt(100, 9999)} ${randomChoice(["Main St", "Oak Ave", "Pine Rd", "First Ave", "Second St"])}`,
-      taxId: Math.random() < 0.7 ? `TAX${randomInt(100000, 999999)}` : null,
-      creditBalance,
-      timezone: randomChoice([
-        "UTC",
-        "America/New_York",
-        "America/Los_Angeles",
-        "Europe/London",
-      ]),
+    balances.push({
+      entityId: entity.id,
+      totalCredits: moneyToDecimalString(createMoney(totalCredits.toFixed(2))),
+      usedCredits: moneyToDecimalString(createMoney(usedCredits.toFixed(2))),
     });
   }
 
-  const createdCustomers = await prisma.customer.createMany({
-    data: customers,
-  });
-
-  console.log(`   Created ${createdCustomers.count} customers`);
-  return await prisma.customer.findMany();
+  await prisma.entityCreditBalance.createMany({ data: balances });
+  console.log(`   Created ${balances.length} credit balances`);
 }
 
-async function seedContracts(customers: any[]) {
-  console.log("📄 Seeding contracts...");
+async function seedEntitySubscriptions(entities: any[]) {
+  console.log("💺 Seeding entity subscriptions...");
 
-  const priceBooks = await prisma.priceBook.findMany();
-  const contracts = [];
+  const subscriptions = [];
+  for (const entity of entities) {
+    // Only some entities have subscriptions
+    if (Math.random() < 0.6) {
+      const seatCount = randomInt(5, 50);
+      const monthlyPrice = seatCount * 25; // $25 per seat per month
+      const annualPrice = monthlyPrice * 10; // 2 months discount
 
-  for (const customer of customers) {
-    // Each customer gets one contract
-    const priceBook = randomChoice(priceBooks);
-    const startDate = new Date();
-    startDate.setMonth(startDate.getMonth() - randomInt(0, 6)); // Started 0-6 months ago
-
-    // 90% of contracts are active
-    const status =
-      Math.random() < 0.9 ? "ACTIVE" : randomChoice(["PAUSED", "CANCELED"]);
-
-    // Calculate next billing date - for demo purposes, make some contracts due for billing
-    const nextBillingDate = new Date();
-    if (Math.random() < 0.3) {
-      // 30% of contracts are due for billing now (overdue)
-      nextBillingDate.setDate(nextBillingDate.getDate() - randomInt(0, 5));
-    } else {
-      // Others are due in the future
-      nextBillingDate.setDate(nextBillingDate.getDate() + randomInt(1, 30));
-    }
-
-    // Set billing cycle based on contract age
-    const monthsActive = Math.floor(
-      (new Date().getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 30),
-    );
-    const billingCycle = Math.max(1, monthsActive + 1);
-
-    contracts.push({
-      customerId: customer.id,
-      startDate,
-      endDate: null, // Open-ended contracts
-      status: status as any,
-      baseFee: priceBook.baseFee,
-      minCommitCalls: priceBook.minCommit,
-      callOverageFee: priceBook.tier2Price, // Use tier 2 price for overage
-      discountRate: moneyToDecimalString(createMoney("0.2")), // 20% discount
-      nextBillingDate,
-      billingCycle,
-      recurrenceRule: "FREQ=MONTHLY;BYMONTHDAY=1", // Bill on 1st of month
-    });
-  }
-
-  const createdContracts = await prisma.contract.createMany({
-    data: contracts,
-  });
-
-  console.log(`   Created ${createdContracts.count} contracts`);
-  return await prisma.contract.findMany({ include: { customer: true } });
-}
-
-async function seedUsageEvents(contracts: any[]) {
-  console.log("📊 Seeding usage events...");
-
-  let totalEvents = 0;
-
-  for (const contract of contracts) {
-    if (contract.status !== "ACTIVE") continue; // Only generate usage for active contracts
-
-    const usagePattern = generateUsagePattern();
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - USAGE_DAYS);
-
-    for (let day = 0; day < USAGE_DAYS; day++) {
-      const dailyUsage = usagePattern[day];
-      if (dailyUsage === 0) continue;
-
-      const eventDate = new Date(startDate);
-      eventDate.setDate(eventDate.getDate() + day);
-
-      // Create multiple events throughout the day
-      const eventsPerDay = Math.min(
-        100,
-        Math.max(1, Math.floor(dailyUsage / 10)),
-      );
-      const callsPerEvent = Math.floor(dailyUsage / eventsPerDay);
-      const remainingCalls = dailyUsage % eventsPerDay;
-
-      for (let event = 0; event < eventsPerDay; event++) {
-        const eventTime = new Date(eventDate);
-        eventTime.setHours(
-          randomInt(0, 23),
-          randomInt(0, 59),
-          randomInt(0, 59),
-        );
-
-        const quantity = callsPerEvent + (event < remainingCalls ? 1 : 0);
-
-        await prisma.usageEvent.create({
-          data: {
-            customerId: contract.customerId,
-            contractId: contract.id,
-            eventType: "api_call",
-            quantity,
-            timestamp: eventTime,
-            metadata: {
-              source: randomChoice(["web", "mobile", "api", "integration"]),
-              endpoint: randomChoice([
-                "/api/v1/users",
-                "/api/v1/data",
-                "/api/v1/analytics",
-                "/api/v1/reports",
-              ]),
-            },
-          },
-        });
-
-        totalEvents++;
-      }
+      subscriptions.push({
+        entityId: entity.id,
+        subscriptionType: "STANDARD",
+        seatCount,
+        monthlyPrice: moneyToDecimalString(
+          createMoney(monthlyPrice.toFixed(2)),
+        ),
+        annualPrice: moneyToDecimalString(createMoney(annualPrice.toFixed(2))),
+        billingCycle: randomChoice(["MONTHLY", "ANNUAL"]),
+        nextBillingDate: new Date(
+          Date.now() + randomInt(1, 30) * 24 * 60 * 60 * 1000,
+        ),
+      });
     }
   }
 
-  console.log(`   Created ${totalEvents} usage events`);
+  if (subscriptions.length > 0) {
+    await prisma.entitySubscription.createMany({ data: subscriptions });
+    console.log(`   Created ${subscriptions.length} subscriptions`);
+  }
 }
 
-async function seedCredits(customers: any[]) {
-  console.log("💳 Seeding credits...");
+async function seedMarketplaceEvents(entities: any[], users: any[]) {
+  console.log("📊 Seeding marketplace events...");
 
-  const credits = [];
+  const events = [];
+  const eventTypes = [
+    "PROJECT_POSTED",
+    "FREELANCER_HIRED",
+    "MILESTONE_COMPLETED",
+  ];
+  const unitPrices = {
+    PROJECT_POSTED: 5.0,
+    FREELANCER_HIRED: 15.0,
+    MILESTONE_COMPLETED: 2.5,
+  };
 
-  // Give 30% of customers some manual credits
-  const customersWithCredits = customers
-    .filter(() => Math.random() < 0.3)
-    .slice(0, 15); // Limit to 15 customers
+  for (const entity of entities) {
+    const entityUsers = users.filter(() => Math.random() < 0.3); // Some users per entity
 
-  for (const customer of customersWithCredits) {
-    const creditTypes = ["MANUAL", "REFUND", "PROMOTIONAL"];
-    const creditType = randomChoice(creditTypes);
-    const amount = randomFloat(10, 100);
+    for (let i = 0; i < randomInt(5, 20); i++) {
+      const eventType = randomChoice(eventTypes);
+      const user = randomChoice(entityUsers);
+      const quantity = randomInt(1, 3);
+      const unitPrice = unitPrices[eventType];
 
-    credits.push({
-      customerId: customer.id,
-      amount: moneyToDecimalString(createMoney(amount.toFixed(2))),
-      description: `${creditType} credit - Customer service adjustment`,
-      type: creditType as any,
-      appliedAt: Math.random() < 0.7 ? new Date() : null, // 70% applied, 30% pending
-    });
+      events.push({
+        entityId: entity.id,
+        userId: user.id,
+        eventType,
+        quantity,
+        unitPrice: moneyToDecimalString(createMoney(unitPrice.toFixed(2))),
+        timestamp: new Date(
+          Date.now() - randomInt(0, 30) * 24 * 60 * 60 * 1000,
+        ),
+        metadata: {
+          source: randomChoice(["web", "mobile", "api"]),
+          projectId: `proj_${randomInt(1000, 9999)}`,
+        },
+      });
+    }
   }
 
-  if (credits.length > 0) {
-    const createdCredits = await prisma.credit.createMany({
-      data: credits,
-    });
-    console.log(`   Created ${createdCredits.count} credits`);
+  if (events.length > 0) {
+    await prisma.marketplaceEvent.createMany({ data: events });
+    console.log(`   Created ${events.length} marketplace events`);
   }
 }
 
@@ -450,6 +347,7 @@ async function main() {
     await prisma.marketplaceEvent.deleteMany();
     await prisma.entityCreditBalance.deleteMany();
     await prisma.entitySubscription.deleteMany();
+    await prisma.creditPackage.deleteMany();
     await prisma.team.deleteMany();
     await prisma.entity.deleteMany();
     await prisma.organization.deleteMany();
@@ -460,17 +358,40 @@ async function main() {
     await seedEntities(orgs);
     const users = await seedUsers();
 
+    // Get all entities for further seeding
+    const entities = await prisma.entity.findMany();
+
+    // Seed relationships and additional data
+    await seedTeams(entities);
+    await seedEntityUsers(entities, users);
+    await seedCreditPackages();
+    await seedEntityCreditBalances(entities);
+    await seedEntitySubscriptions(entities);
+    await seedMarketplaceEvents(entities, users);
+
     // Summary
     console.log("\n📈 Seed Summary:");
     const counts = await Promise.all([
       prisma.organization.count(),
       prisma.entity.count(),
       prisma.user.count(),
+      prisma.team.count(),
+      prisma.entityUser.count(),
+      prisma.creditPackage.count(),
+      prisma.entityCreditBalance.count(),
+      prisma.entitySubscription.count(),
+      prisma.marketplaceEvent.count(),
     ]);
 
     console.log(`   Organizations: ${counts[0]}`);
     console.log(`   Entities: ${counts[1]}`);
     console.log(`   Users: ${counts[2]}`);
+    console.log(`   Teams: ${counts[3]}`);
+    console.log(`   Entity Users: ${counts[4]}`);
+    console.log(`   Credit Packages: ${counts[5]}`);
+    console.log(`   Credit Balances: ${counts[6]}`);
+    console.log(`   Subscriptions: ${counts[7]}`);
+    console.log(`   Marketplace Events: ${counts[8]}`);
 
     console.log("\n✅ Database seeded successfully!");
   } catch (error) {
