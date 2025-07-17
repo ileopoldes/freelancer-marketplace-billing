@@ -19,7 +19,7 @@ export function BillingJobControl() {
     setIsRunning(true);
     try {
       await runBillingMutation.mutateAsync(asOfDate || undefined);
-    } catch (error) {
+    } catch {
       // Error is already handled by the mutation's error state
     } finally {
       setIsRunning(false);

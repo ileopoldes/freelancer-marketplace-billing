@@ -1,13 +1,13 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 
-interface CreateBillingJobRequest {
+export interface CreateBillingJobRequest {
   entityId?: string;
   type: "manual" | "automatic";
   effectiveDate?: string;
 }
 
-interface BillingJobResponse {
+export interface BillingJobResponse {
   id: string;
   status: string;
   type: string;

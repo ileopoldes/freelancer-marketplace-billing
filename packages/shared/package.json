@@ -8,7 +8,10 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "lint": "eslint src --ext .ts",
-    "test": "jest --passWithNoTests"
+    "test": "jest --passWithNoTests",
+    "coverage": "jest --coverage --passWithNoTests",
+    "coverage:report": "jest --coverage --coverageReporters=text-summary --passWithNoTests",
+    "coverage:html": "jest --coverage --coverageReporters=html --passWithNoTests"
   },
   "dependencies": {
     "decimal.js": "^10.4.3",

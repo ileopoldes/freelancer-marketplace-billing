@@ -6,6 +6,7 @@ import {
   Param,
   HttpException,
   HttpStatus,
+  Logger,
 } from "@nestjs/common";
 import { BillingService } from "./billing.service";
 
@@ -25,6 +26,7 @@ export class BillingController {
       const jobs = await this.billingService.getBillingJobs();
       return { jobs };
     } catch (error) {
+      Logger.error(error, "BillingController.getBillingJobs");
       throw new HttpException(
         "Failed to fetch billing jobs",
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -38,6 +40,7 @@ export class BillingController {
       const job = await this.billingService.createBillingJob(body);
       return { job };
     } catch (error) {
+      Logger.error(error, "BillingController.createBillingJob");
       throw new HttpException(
         "Failed to create billing job",
         HttpStatus.INTERNAL_SERVER_ERROR,

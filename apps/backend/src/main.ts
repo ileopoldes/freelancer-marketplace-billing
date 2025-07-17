@@ -1,9 +1,13 @@
 import { NestFactory } from "@nestjs/core";
-import { ValidationPipe } from "@nestjs/common";
+import { ConsoleLogger, Logger, ValidationPipe } from "@nestjs/common";
 import { AppModule } from "./app.module";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: new ConsoleLogger("FM Billing API", {
+      logLevels: ["error", "warn", "log"],
+    }),
+  });
 
   // Global validation pipe
   app.useGlobalPipes(
@@ -27,9 +31,7 @@ async function bootstrap() {
   const host = process.env.HOST || "0.0.0.0";
 
   await app.listen(port, host);
-  // Use proper logging for production
-  // eslint-disable-next-line no-console
-  console.log(`Application is running on: ${await app.getUrl()}`);
+  Logger.log(`Application is running on: ${await app.getUrl()}`);
 }
 
 bootstrap();

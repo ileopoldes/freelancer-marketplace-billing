@@ -4,6 +4,7 @@ import {
   Param,
   HttpException,
   HttpStatus,
+  Logger,
 } from "@nestjs/common";
 import { InvoicesService } from "./invoices.service";
 
@@ -17,6 +18,7 @@ export class InvoicesController {
       const invoices = await this.invoicesService.findAll();
       return { invoices };
     } catch (error) {
+      Logger.error(error, "InvoicesController.findAll");
       throw new HttpException(
         "Failed to fetch invoices",
         HttpStatus.INTERNAL_SERVER_ERROR,

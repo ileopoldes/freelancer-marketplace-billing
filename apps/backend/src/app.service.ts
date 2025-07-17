@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "./prisma/prisma.service";
 
 @Injectable()
@@ -18,6 +18,7 @@ export class AppService {
         database: "connected",
       };
     } catch (error) {
+      Logger.error(error, "AppService.getHealth");
       return {
         status: "error",
         timestamp: new Date().toISOString(),

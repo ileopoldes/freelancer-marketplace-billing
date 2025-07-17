@@ -9,20 +9,26 @@
     "start": "next start",
     "lint": "next lint",
     "test": "jest --passWithNoTests",
+    "coverage": "jest --coverage --passWithNoTests",
+    "coverage:report": "jest --coverage --coverageReporters=text-summary --passWithNoTests",
+    "coverage:html": "jest --coverage --coverageReporters=html --passWithNoTests",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@marketplace/shared": "1.0.0",
+    "@marketplace/shared": "file:../../packages/shared",
     "@tanstack/react-query": "^5.8.4",
     "clsx": "^2.0.0",
     "next": "^14.0.3",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "tailwind-merge": "^2.0.0",
     "tailwindcss": "^3.3.5",
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.1.4",
+    "@testing-library/react": "^13.4.0",
+    "@types/jest": "^29.5.5",
     "@types/node": "^20.8.0",
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",
@@ -30,8 +36,11 @@
     "eslint": "^8.53.0",
     "eslint-config-next": "^14.0.3",
     "eslint-config-prettier": "^10.1.5",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
     "postcss": "^8.4.31",
     "prettier": "^3.6.2",
+    "ts-jest": "^29.1.1",
     "typescript": "^5.1.6"
   }
 }

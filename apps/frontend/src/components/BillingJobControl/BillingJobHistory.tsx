@@ -6,7 +6,7 @@ interface BillingJob {
   asOfDate: string;
   contractsProcessed?: number;
   invoicesGenerated?: number;
-  totalBilled?: number;
+  totalBilled?: string;
   createdAt: string;
   updatedAt: string;
   errorMessage?: string;

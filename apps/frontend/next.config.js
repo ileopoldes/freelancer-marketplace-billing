@@ -1,7 +1,7 @@
-/** @type {import('next').NextConfig} */
+// @typescript/** @type {import('next').NextConfig} */
 const nextConfig = {
   // experimental.appDir is no longer needed in Next.js 14
-  transpilePackages: ["@billforge/shared"],
+  transpilePackages: ["@marketplace/shared"],
   output: "standalone", // Enable standalone output for Docker
   env: {
     NEXT_PUBLIC_API_URL:
@@ -11,7 +11,8 @@ const nextConfig = {
     // Add alias for shared package
     config.resolve.alias = {
       ...config.resolve.alias,
-      "@billforge/shared": require("path").resolve(__dirname, "src/shared"),
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      "@marketplace/shared": require("path").resolve(__dirname, "src/shared"),
     };
     return config;
   },
