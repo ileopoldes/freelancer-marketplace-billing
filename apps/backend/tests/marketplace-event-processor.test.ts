@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+// import { PrismaClient } from "@prisma/client";
 import { MarketplaceEventProcessor } from "../src/services/billing/MarketplaceEventProcessor";
 import { createMoney, moneyToDecimalString } from "@marketplace/shared";
 
@@ -20,7 +20,7 @@ const mockPrisma = {
   user: {
     findUnique: jest.fn(),
   },
-} as any;
+} as Record<string, any>;
 
 describe("MarketplaceEventProcessor", () => {
   let eventProcessor: MarketplaceEventProcessor;
@@ -44,7 +44,7 @@ describe("MarketplaceEventProcessor", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    eventProcessor = new MarketplaceEventProcessor(mockPrisma);
+    eventProcessor = new MarketplaceEventProcessor(mockPrisma as any);
     setupCommonMocks();
   });
 

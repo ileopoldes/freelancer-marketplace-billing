@@ -1,11 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+// import { PrismaClient } from "@prisma/client";
 import { MarketplaceBillingEngine } from "../src/services/billing/MarketplaceBillingEngine";
-import {
-  createMoney,
-  moneyToDecimalString,
-  JobStatus,
-  ContractStatus,
-} from "@marketplace/shared";
+import { JobStatus, ContractStatus } from "@marketplace/shared";
 
 // Mock Prisma for testing
 const mockPrisma = {
@@ -36,14 +31,14 @@ const mockPrisma = {
     findMany: jest.fn(),
     update: jest.fn(),
   },
-} as any;
+} as Record<string, any>;
 
 describe("MarketplaceBillingEngine", () => {
   let billingEngine: MarketplaceBillingEngine;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    billingEngine = new MarketplaceBillingEngine(mockPrisma);
+    billingEngine = new MarketplaceBillingEngine(mockPrisma as any);
   });
 
   describe("Contract Discovery", () => {

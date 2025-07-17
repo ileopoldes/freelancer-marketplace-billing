@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+// import { PrismaClient } from "@prisma/client";
 import { SeatBasedPricer } from "../src/services/pricing/SeatBasedPricer";
 import { createMoney, moneyToDecimalString } from "@marketplace/shared";
 
@@ -12,14 +12,14 @@ const mockPrisma = {
   entityUser: {
     count: jest.fn(),
   },
-} as any;
+} as Record<string, any>;
 
 describe("SeatBasedPricer", () => {
   let pricer: SeatBasedPricer;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    pricer = new SeatBasedPricer(mockPrisma);
+    pricer = new SeatBasedPricer(mockPrisma as any);
   });
 
   describe("Subscription Creation", () => {

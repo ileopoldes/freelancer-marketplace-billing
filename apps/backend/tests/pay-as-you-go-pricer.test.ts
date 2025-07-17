@@ -1,20 +1,23 @@
-import { PrismaClient } from "@prisma/client";
+// import { PrismaClient } from "@prisma/client";
 import { PayAsYouGoPricer } from "../src/services/pricing/PayAsYouGoPricer";
-import { createMoney, moneyToDecimalString } from "@marketplace/shared";
+import {
+  moneyToDecimalString,
+  moneyFromDecimalString,
+} from "@marketplace/shared";
 
 // Mock Prisma for testing
 const mockPrisma = {
   marketplaceEvent: {
     findMany: jest.fn(),
   },
-} as any;
+} as Record<string, any>;
 
 describe("PayAsYouGoPricer", () => {
   let pricer: PayAsYouGoPricer;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    pricer = new PayAsYouGoPricer(mockPrisma);
+    pricer = new PayAsYouGoPricer(mockPrisma as any);
   });
 
   describe("Single Event Pricing", () => {
