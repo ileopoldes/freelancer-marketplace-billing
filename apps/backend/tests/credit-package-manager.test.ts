@@ -4,7 +4,6 @@ import { CreditPackageManager } from "../src/services/billing/CreditPackageManag
 import {
   createMoney,
   moneyToDecimalString,
-  _moneyFromDecimalString,
   CreditType,
 } from "@marketplace/shared";
 
@@ -35,7 +34,7 @@ describe("CreditPackageManager", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    creditManager = new CreditPackageManager(mockPrisma);
+    creditManager = new CreditPackageManager(mockPrisma as any);
   });
 
   describe("Credit Package Purchase", () => {
