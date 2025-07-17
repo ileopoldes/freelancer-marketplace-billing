@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
 export class CustomersService {
@@ -7,7 +7,7 @@ export class CustomersService {
 
   async findAll() {
     return this.prisma.customer.findMany({
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
     });
   }
 
@@ -23,7 +23,7 @@ export class CustomersService {
       include: {
         customer: true,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
     return invoices.map((invoice) => ({

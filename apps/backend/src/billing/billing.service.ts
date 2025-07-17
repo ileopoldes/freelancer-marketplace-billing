@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
 
 interface CreateBillingJobRequest {
   entityId?: string;
-  type: 'manual' | 'automatic';
+  type: "manual" | "automatic";
   effectiveDate?: string;
 }
 
@@ -25,25 +25,27 @@ export class BillingService {
     return [];
   }
 
-  async createBillingJob(data: CreateBillingJobRequest): Promise<BillingJobResponse> {
+  async createBillingJob(
+    data: CreateBillingJobRequest,
+  ): Promise<BillingJobResponse> {
     // Placeholder implementation - in real app, would create in database
-    return { 
-      id: 'job-123', 
-      status: 'created', 
+    return {
+      id: "job-123",
+      status: "created",
       type: data.type,
       createdAt: new Date().toISOString(),
       entityId: data.entityId,
-      effectiveDate: data.effectiveDate
+      effectiveDate: data.effectiveDate,
     };
   }
 
   async getBillingJob(id: string): Promise<BillingJobResponse | null> {
     // Placeholder implementation - in real app, would query database
-    return { 
-      id, 
-      status: 'pending',
-      type: 'automatic',
-      createdAt: new Date().toISOString()
+    return {
+      id,
+      status: "pending",
+      type: "automatic",
+      createdAt: new Date().toISOString(),
     };
   }
 }

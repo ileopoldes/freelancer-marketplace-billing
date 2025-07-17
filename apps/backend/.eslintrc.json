@@ -3,8 +3,6 @@
     "node": true,
     "jest": true
   },
-  "extends": [
-    "../../.eslintrc.json"
-  ],
+  "extends": ["../../.eslintrc.json"],
   "ignorePatterns": ["dist/", "node_modules/", "coverage/", "prisma/generated/"]
 }

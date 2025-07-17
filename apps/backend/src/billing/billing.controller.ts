@@ -1,48 +1,56 @@
-import { Controller, Get, Post, Body, Param, HttpException, HttpStatus } from '@nestjs/common';
-import { BillingService } from './billing.service';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  HttpException,
+  HttpStatus,
+} from "@nestjs/common";
+import { BillingService } from "./billing.service";
 
 interface CreateBillingJobRequest {
   entityId?: string;
-  type: 'manual' | 'automatic';
+  type: "manual" | "automatic";
   effectiveDate?: string;
 }
 
-@Controller('billing')
+@Controller("billing")
 export class BillingController {
   constructor(private readonly billingService: BillingService) {}
 
-  @Get('jobs')
+  @Get("jobs")
   async getBillingJobs() {
     try {
       const jobs = await this.billingService.getBillingJobs();
       return { jobs };
     } catch (error) {
       throw new HttpException(
-        'Failed to fetch billing jobs',
+        "Failed to fetch billing jobs",
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
-  @Post('jobs')
+  @Post("jobs")
   async createBillingJob(@Body() body: CreateBillingJobRequest) {
     try {
       const job = await this.billingService.createBillingJob(body);
       return { job };
     } catch (error) {
       throw new HttpException(
-        'Failed to create billing job',
+        "Failed to create billing job",
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
-  @Get('jobs/:id')
-  async getBillingJob(@Param('id') id: string) {
+  @Get("jobs/:id")
+  async getBillingJob(@Param("id") id: string) {
     try {
       const job = await this.billingService.getBillingJob(id);
       if (!job) {
-        throw new HttpException('Billing job not found', HttpStatus.NOT_FOUND);
+        throw new HttpException("Billing job not found", HttpStatus.NOT_FOUND);
       }
       return job;
     } catch (error) {
@@ -50,7 +58,7 @@ export class BillingController {
         throw error;
       }
       throw new HttpException(
-        'Failed to fetch billing job',
+        "Failed to fetch billing job",
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

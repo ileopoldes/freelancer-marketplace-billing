@@ -1,7 +1,13 @@
-import { Controller, Get, Param, HttpException, HttpStatus } from '@nestjs/common';
-import { InvoicesService } from './invoices.service';
+import {
+  Controller,
+  Get,
+  Param,
+  HttpException,
+  HttpStatus,
+} from "@nestjs/common";
+import { InvoicesService } from "./invoices.service";
 
-@Controller('invoices')
+@Controller("invoices")
 export class InvoicesController {
   constructor(private readonly invoicesService: InvoicesService) {}
 
@@ -12,18 +18,18 @@ export class InvoicesController {
       return { invoices };
     } catch (error) {
       throw new HttpException(
-        'Failed to fetch invoices',
+        "Failed to fetch invoices",
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
-  @Get(':id')
-  async findOne(@Param('id') id: string) {
+  @Get(":id")
+  async findOne(@Param("id") id: string) {
     try {
       const invoice = await this.invoicesService.findOne(id);
       if (!invoice) {
-        throw new HttpException('Invoice not found', HttpStatus.NOT_FOUND);
+        throw new HttpException("Invoice not found", HttpStatus.NOT_FOUND);
       }
       return invoice;
     } catch (error) {
@@ -31,7 +37,7 @@ export class InvoicesController {
         throw error;
       }
       throw new HttpException(
-        'Failed to fetch invoice',
+        "Failed to fetch invoice",
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

@@ -19,7 +19,7 @@ async function seedOrganizations() {
     const companyName = randomChoice(companies);
     organizations.push({
       name: companyName,
-      billingEmail: `billing@${companyName.toLowerCase().replace(/[^a-z0-9]/g, "")}.com`
+      billingEmail: `billing@${companyName.toLowerCase().replace(/[^a-z0-9]/g, "")}.com`,
     });
   }
 
@@ -35,7 +35,7 @@ async function seedEntities(organizations) {
     for (let i = 0; i < DEMO_ENTITIES_PER_ORG; i++) {
       entities.push({
         organizationId: org.id,
-        name: `Entity ${i + 1} of ${org.name}`
+        name: `Entity ${i + 1} of ${org.name}`,
       });
     }
     await prisma.entity.createMany({ data: entities });

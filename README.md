@@ -50,6 +50,43 @@ Organizations (Companies)
 - Usage-based billing calculations
 - Overage detection and automatic fallback to invoicing
 
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- PostgreSQL 12+
+- npm 9+
+
+### Installation
+
+```bash
+# Install dependencies
+npm install
+
+# Generate Prisma client
+npm run db:generate
+
+# Run database migrations
+npm run db:migrate
+
+# Seed sample data
+npm run db:seed
+```
+
+### Development
+
+```bash
+# Start development servers
+npm run dev
+
+# Run tests
+npm test
+
+# Database studio
+npm run db:studio
+```
+
 ## Database Schema
 
 ### Core Multi-Tenant Tables
@@ -104,35 +141,6 @@ Organizations (Companies)
 - Seat-based subscriptions per entity
 - Monthly/annual billing cycles
 
-### Legacy Tables (Maintained for Compatibility)
-
-- Customer, Contract, Invoice, Payment
-- Will be gradually migrated to new structure
-
-## Implementation Status
-
-### ✅ Phase 1: Foundation (COMPLETED)
-
-- [x] Project structure cleanup
-- [x] Core class renaming
-- [x] Import statement updates
-- [x] Package.json updates
-
-### ✅ Phase 2: Database Schema (COMPLETED)
-
-- [x] Multi-tenant table design
-- [x] Entity relationships
-- [x] Credit management tables
-- [x] Marketplace event tables
-- [x] Subscription management tables
-
-### ✅ Phase 3: Core Business Logic (COMPLETED)
-
-- [x] Pay-as-you-go billing implementation (`PayAsYouGoPricer`, `MarketplaceEventProcessor`)
-- [x] Credit package management (`CreditPackageManager` with simplified approach)
-- [x] Seat-based subscription logic (`SeatBasedPricer` with monthly billing)
-- [x] Multi-tenant billing engine (`MarketplaceBillingEngine`)
-
 ## Key Assumptions
 
 ### Billing Models (Current Implementation)
@@ -156,43 +164,6 @@ Organizations (Companies)
 11. **Event-Driven**: Billing events trigger permission updates
 12. **Webhook Integration**: External system notifications
 13. **Tenant Isolation**: Complete data isolation between organizations
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- PostgreSQL 12+
-- npm 9+
-
-### Installation
-
-```bash
-# Install dependencies
-npm install
-
-# Generate Prisma client
-npm run db:generate
-
-# Run database migrations
-npm run db:migrate
-
-# Seed sample data
-npm run db:seed
-```
-
-### Development
-
-```bash
-# Start development servers
-npm run dev
-
-# Run tests
-npm test
-
-# Database studio
-npm run db:studio
-```
 
 ## API Structure
 
@@ -272,40 +243,6 @@ npm run db:studio
 - **Money**: decimal.js for precise financial calculations
 - **Dates**: RRULE.js for recurrence patterns
 - **Utilities**: Common validation, formatting, and business logic
-
-## 💯 Implementation Status
-
-### ✅ Completed (60% of total requirements)
-
-- **💴 Backend Business Logic**: Core billing models fully implemented
-- **💾 Database Schema**: Multi-tenant architecture with all required tables
-- **📊 Event Processing**: Real-time marketplace event handling
-- **💰 Credit Management**: Simplified credit package and balance management
-- **💳 Billing Models**: Pay-as-you-go, prepaid credits, and seat-based subscriptions
-- **📦 Code Quality**: Clean TypeScript with comprehensive linting
-
-### 📝 Next Steps
-
-1. **🔌 API Layer Completion** (Immediate Priority)
-   - Complete NestJS API endpoints for all billing operations
-   - Add authentication and authorization middleware
-   - Implement input validation and error handling
-
-2. **🕷️ Frontend Dashboard Development** (High Priority)
-   - Entity billing management interface
-   - Credit package purchase workflows
-   - Seat-based subscription management
-   - Multi-tenant organization views
-
-3. **🔗 Permission System Integration** (Medium Priority)
-   - Webhook delivery system for billing events
-   - External system notification mechanisms
-   - Event payload standardization
-
-4. **📊 Advanced Features** (Lower Priority)
-   - Analytics and reporting dashboards
-   - Advanced notification systems
-   - Performance monitoring and optimization
 
 ## Contributing
 
