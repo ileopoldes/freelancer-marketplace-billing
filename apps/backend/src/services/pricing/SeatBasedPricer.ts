@@ -1,9 +1,4 @@
-import {
-  Money,
-  createMoney,
-  multiplyMoney,
-  subtractMoney,
-} from "@marketplace/shared";
+import { Money, createMoney, multiplyMoney } from "@marketplace/shared";
 import { PrismaClient } from "@prisma/client";
 
 export interface SeatSubscription {
@@ -19,22 +14,13 @@ export interface SeatSubscription {
 export interface SeatChange {
   previousSeatCount: number;
   newSeatCount: number;
-  prorationAmount: Money;
   effectiveDate: Date;
   nextBillingDate: Date;
 }
 
-export interface ProrationCalculation {
-  daysInBillingPeriod: number;
-  daysRemaining: number;
-  prorationFactor: number;
-  baseAmount: Money;
-  prorationAmount: Money;
-}
-
 /**
- * Service for calculating seat-based subscription pricing
- * Supports monthly/annual billing with proration for mid-cycle changes
+ * Simplified service for calculating seat-based subscription pricing
+ * Supports monthly/annual billing without proration logic
  */
 export class SeatBasedPricer {
   private prisma: PrismaClient;
@@ -82,53 +68,8 @@ export class SeatBasedPricer {
   }
 
   /**
-   * Calculate proration for seat changes mid-cycle
-   */
-  calculateProration(params: {
-    currentSeatCount: number;
-    newSeatCount: number;
-    pricePerSeat: Money;
-    billingPeriodStart: Date;
-    billingPeriodEnd: Date;
-    changeEffectiveDate?: Date;
-  }): ProrationCalculation {
-    const {
-      currentSeatCount,
-      newSeatCount,
-      pricePerSeat,
-      billingPeriodStart,
-      billingPeriodEnd,
-      changeEffectiveDate = new Date(),
-    } = params;
-
-    const daysInBillingPeriod = this.getDaysBetween(
-      billingPeriodStart,
-      billingPeriodEnd,
-    );
-    const daysRemaining = this.getDaysBetween(
-      changeEffectiveDate,
-      billingPeriodEnd,
-    );
-    const prorationFactor = daysRemaining / daysInBillingPeriod;
-
-    const seatDifference = newSeatCount - currentSeatCount;
-    const baseAmount = multiplyMoney(pricePerSeat, Math.abs(seatDifference));
-    const prorationAmount = multiplyMoney(baseAmount, prorationFactor);
-
-    return {
-      daysInBillingPeriod,
-      daysRemaining,
-      prorationFactor,
-      baseAmount,
-      prorationAmount:
-        seatDifference >= 0
-          ? prorationAmount
-          : subtractMoney(createMoney("0"), prorationAmount),
-    };
-  }
-
-  /**
    * Update seat count for an entity subscription
+   * Changes take effect on the next billing cycle
    */
   async updateSeatCount(
     entityId: string,
@@ -146,23 +87,7 @@ export class SeatBasedPricer {
     const previousSeatCount = subscription.seatCount;
     const pricePerSeat = createMoney("50.00"); // This should come from pricing configuration
 
-    // Calculate proration
-    const billingPeriodStart = this.calculateBillingPeriodStart(
-      subscription.nextBillingDate!,
-      subscription.billingCycle as "MONTHLY" | "ANNUAL",
-    );
-    const billingPeriodEnd = subscription.nextBillingDate!;
-
-    const proration = this.calculateProration({
-      currentSeatCount: previousSeatCount,
-      newSeatCount,
-      pricePerSeat,
-      billingPeriodStart,
-      billingPeriodEnd,
-      changeEffectiveDate: effectiveDate,
-    });
-
-    // Update subscription
+    // Update subscription - changes take effect on next billing cycle
     await this.prisma.entitySubscription.update({
       where: { id: subscription.id },
       data: {
@@ -181,7 +106,6 @@ export class SeatBasedPricer {
     return {
       previousSeatCount,
       newSeatCount,
-      prorationAmount: proration.prorationAmount,
       effectiveDate,
       nextBillingDate: subscription.nextBillingDate!,
     };
@@ -267,25 +191,5 @@ export class SeatBasedPricer {
     }
 
     return nextBilling;
-  }
-
-  private calculateBillingPeriodStart(
-    nextBillingDate: Date,
-    billingCycle: "MONTHLY" | "ANNUAL",
-  ): Date {
-    const periodStart = new Date(nextBillingDate);
-
-    if (billingCycle === "MONTHLY") {
-      periodStart.setMonth(periodStart.getMonth() - 1);
-    } else {
-      periodStart.setFullYear(periodStart.getFullYear() - 1);
-    }
-
-    return periodStart;
-  }
-
-  private getDaysBetween(startDate: Date, endDate: Date): number {
-    const timeDifference = endDate.getTime() - startDate.getTime();
-    return Math.ceil(timeDifference / (1000 * 3600 * 24));
   }
 }

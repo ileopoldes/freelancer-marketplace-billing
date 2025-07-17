@@ -255,10 +255,10 @@ export class MarketplaceEventProcessor {
       createMoney("0"),
     );
 
-    // Note: This is simplified - in a real implementation, you'd track billing method per event
+    // Simplified billing method breakdown
     const billingMethodBreakdown = {
-      creditsBilled: createMoney("0"), // Would be calculated based on actual billing records
-      invoicesBilled: totalCost, // Simplified assumption
+      creditsBilled: createMoney("0"),
+      invoicesBilled: totalCost,
     };
 
     return {
@@ -270,44 +270,17 @@ export class MarketplaceEventProcessor {
   }
 
   /**
-   * Handle overage scenarios and notifications
+   * Get current credit balance for an entity
    */
-  async checkForOverages(entityId: string): Promise<{
-    hasOverage: boolean;
-    overageAmount: Money;
+  async getCreditBalance(entityId: string): Promise<{
     creditBalance: Money;
-    recommendedAction: string;
   }> {
     const creditBalance =
       await this.creditPackageManager.getEntityCreditBalance(entityId);
     const currentBalance = creditBalance?.availableCredits || createMoney("0");
 
-    // Check if credits are running low (less than $50)
-    const lowBalanceThreshold = createMoney("50.00");
-    const hasOverage = currentBalance.amount.lessThan(
-      lowBalanceThreshold.amount,
-    );
-
-    let recommendedAction = "No action needed";
-    if (hasOverage) {
-      if (currentBalance.amount.lessThanOrEqualTo(0)) {
-        recommendedAction =
-          "Purchase credits immediately - account will be billed for future events";
-      } else {
-        recommendedAction =
-          "Consider purchasing additional credits to avoid billing delays";
-      }
-    }
-
     return {
-      hasOverage,
-      overageAmount: hasOverage
-        ? createMoney(
-            lowBalanceThreshold.amount.minus(currentBalance.amount).toString(),
-          )
-        : createMoney("0"),
       creditBalance: currentBalance,
-      recommendedAction,
     };
   }
 

@@ -30,7 +30,7 @@ model Entity {
   organizationId  String
   name            String
   description     String?
-  billingSettings Json?
+  billingModel    String   @default("SEAT_BASED") // Only one billing model per entity
   status          String   @default("ACTIVE")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -51,7 +51,6 @@ model Team {
   name       String
   description String?
   teamLeadId String?
-  billingModel Json?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -196,7 +195,6 @@ model CreditPackage {
   name        String
   creditsAmount Decimal @db.Decimal(20, 6)
   price       Decimal   @db.Decimal(20, 6)
-  validityDays Int
   description String?
   active      Boolean   @default(true)
   createdAt   DateTime  @default(now())
@@ -210,7 +208,6 @@ model EntityCreditBalance {
   entityId     String
   totalCredits Decimal  @default(0) @db.Decimal(20, 6)
   usedCredits  Decimal  @default(0) @db.Decimal(20, 6)
-  expiresAt    DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -260,7 +257,6 @@ model Credit {
   amount      Decimal     @db.Decimal(20, 6)
   description String
   type        CreditType  @default(MANUAL)
-  expiresAt   DateTime?
   appliedAt   DateTime?
   metadata    Json?
   createdAt   DateTime    @default(now())
