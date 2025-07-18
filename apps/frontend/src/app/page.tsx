@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { CustomerDashboard } from "@/components/CustomerDashboard";
 import { InvoiceTable } from "@/components/InvoiceTable";
 import { BillingJobControl } from "@/components/BillingJobControl";
@@ -21,6 +22,7 @@ export default function HomePage() {
     | "subscriptions"
     | "entities"
     | "permissions"
+    | "organizations"
   >("customers");
 
   return (
@@ -28,6 +30,42 @@ export default function HomePage() {
       {/* Health Status */}
       <div className="mb-6">
         <HealthStatus />
+      </div>
+
+      {/* Quick Navigation */}
+      <div className="mb-6">
+        <div className="bg-white shadow rounded-lg p-4">
+          <h2 className="text-lg font-medium text-gray-900 mb-4">
+            Quick Navigation
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Link
+              href="/organizations"
+              className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 p-4 rounded-lg border border-indigo-200"
+            >
+              <h3 className="font-medium">Organizations</h3>
+              <p className="text-sm text-indigo-600">
+                Manage organizations and billing models
+              </p>
+            </Link>
+            <Link
+              href="/entities"
+              className="bg-green-50 hover:bg-green-100 text-green-700 p-4 rounded-lg border border-green-200"
+            >
+              <h3 className="font-medium">Entities</h3>
+              <p className="text-sm text-green-600">View and manage entities</p>
+            </Link>
+            <Link
+              href="/projects"
+              className="bg-blue-50 hover:bg-blue-100 text-blue-700 p-4 rounded-lg border border-blue-200"
+            >
+              <h3 className="font-medium">Projects</h3>
+              <p className="text-sm text-blue-600">
+                Manage projects and assignments
+              </p>
+            </Link>
+          </div>
+        </div>
       </div>
 
       {/* Navigation Tabs */}
@@ -113,6 +151,16 @@ export default function HomePage() {
           >
             Permissions
           </button>
+          <button
+            onClick={() => setActiveTab("organizations")}
+            className={`pb-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === "organizations"
+                ? "border-primary-500 text-primary-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            }`}
+          >
+            Organizations
+          </button>
         </nav>
       </div>
 
@@ -172,6 +220,25 @@ export default function HomePage() {
         {activeTab === "permissions" && (
           <div>
             <Permissions />
+          </div>
+        )}
+
+        {activeTab === "organizations" && (
+          <div>
+            <div className="text-center py-8">
+              <h2 className="text-lg font-medium text-gray-900 mb-4">
+                Organizations
+              </h2>
+              <p className="text-gray-600 mb-4">
+                Manage organizations and their billing models
+              </p>
+              <Link
+                href="/organizations"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+              >
+                Go to Organizations
+              </Link>
+            </div>
           </div>
         )}
       </div>

@@ -68,7 +68,8 @@ export class ProjectsService {
           endDate: createProjectDto.endDate
             ? new Date(createProjectDto.endDate)
             : null,
-          metadata: createProjectDto.metadata,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          metadata: createProjectDto.metadata as any,
           status: "DRAFT",
         },
         include: {
@@ -198,7 +199,8 @@ export class ProjectsService {
           completedAt: updateProjectDto.completedAt
             ? new Date(updateProjectDto.completedAt)
             : undefined,
-          metadata: updateProjectDto.metadata,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          metadata: updateProjectDto.metadata as any,
         },
         include: {
           entity: {
