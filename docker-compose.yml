@@ -18,8 +18,8 @@ services:
 
   backend:
     build:
-      context: ./apps/backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/backend/Dockerfile
     container_name: fmb-backend
     environment:
       - DATABASE_URL=postgresql://fmb_user:fmb_password@postgres:5432/freelancer_marketplace_billing?schema=public
@@ -31,7 +31,27 @@ services:
       postgres:
         condition: service_healthy
     volumes:
-      - ./apps/backend:/app
+      - ./apps/backend:/app/apps/backend
+      - ./packages/shared:/app/packages/shared
+      - /app/node_modules
+    command: npm run dev
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+    container_name: fmb-frontend
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+      - PORT=3000
+      - NODE_ENV=development
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./apps/frontend:/app/apps/frontend
+      - ./packages/shared:/app/packages/shared
       - /app/node_modules
     command: npm run dev
 

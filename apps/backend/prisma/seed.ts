@@ -31,12 +31,16 @@ async function seedOrganizations() {
 async function seedEntities(organizations) {
   console.log("🏬 Seeding entities...");
 
+  const billingModels = ["PAY_AS_YOU_GO", "PREPAID_CREDITS", "SEAT_BASED"];
+
   for (const org of organizations) {
     const entities = [];
     for (let i = 0; i < DEMO_ENTITIES_PER_ORG; i++) {
       entities.push({
         organizationId: org.id,
         name: `Entity ${i + 1} of ${org.name}`,
+        description: `Entity ${i + 1} for ${org.name}`,
+        billingModel: randomChoice(billingModels),
       });
     }
     await prisma.entity.createMany({ data: entities });
@@ -47,12 +51,17 @@ async function seedUsers() {
   console.log("👤 Seeding users...");
 
   const users = [];
+  const roles = ["ADMIN", "USER", "FREELANCER", "TEAM_LEAD"];
 
   for (let i = 0; i < DEMO_USERS_COUNT; i++) {
     const firstName = randomChoice(firstNames);
     const lastName = randomChoice(lastNames);
     const email = generateEmail(firstName, lastName, "example.com");
-    users.push({ name: `${firstName} ${lastName}`, email });
+    users.push({
+      name: `${firstName} ${lastName}`,
+      email,
+      globalRole: randomChoice(roles),
+    });
   }
 
   await prisma.user.createMany({ data: users });
@@ -308,26 +317,28 @@ async function seedMarketplaceEvents(entities: any[], users: any[]) {
   for (const entity of entities) {
     const entityUsers = users.filter(() => Math.random() < 0.3); // Some users per entity
 
-    for (let i = 0; i < randomInt(5, 20); i++) {
-      const eventType = randomChoice(eventTypes);
-      const user = randomChoice(entityUsers);
-      const quantity = randomInt(1, 3);
-      const unitPrice = unitPrices[eventType];
+    if (entityUsers.length > 0) {
+      for (let i = 0; i < randomInt(5, 20); i++) {
+        const eventType = randomChoice(eventTypes);
+        const user = randomChoice(entityUsers);
+        const quantity = randomInt(1, 3);
+        const unitPrice = unitPrices[eventType];
 
-      events.push({
-        entityId: entity.id,
-        userId: user.id,
-        eventType,
-        quantity,
-        unitPrice: moneyToDecimalString(createMoney(unitPrice.toFixed(2))),
-        timestamp: new Date(
-          Date.now() - randomInt(0, 30) * 24 * 60 * 60 * 1000,
-        ),
-        metadata: {
-          source: randomChoice(["web", "mobile", "api"]),
-          projectId: `proj_${randomInt(1000, 9999)}`,
-        },
-      });
+        events.push({
+          entityId: entity.id,
+          userId: user.id,
+          eventType,
+          quantity,
+          unitPrice: moneyToDecimalString(createMoney(unitPrice.toFixed(2))),
+          timestamp: new Date(
+            Date.now() - randomInt(0, 30) * 24 * 60 * 60 * 1000,
+          ),
+          metadata: {
+            source: randomChoice(["web", "mobile", "api"]),
+            projectId: `proj_${randomInt(1000, 9999)}`,
+          },
+        });
+      }
     }
   }
 
@@ -343,6 +354,10 @@ async function main() {
   try {
     // Clear existing data
     console.log("🧹 Cleaning existing data...");
+    await prisma.walletTransaction.deleteMany();
+    await prisma.wallet.deleteMany();
+    await prisma.projectContract.deleteMany();
+    await prisma.project.deleteMany();
     await prisma.entityUser.deleteMany();
     await prisma.marketplaceEvent.deleteMany();
     await prisma.entityCreditBalance.deleteMany();

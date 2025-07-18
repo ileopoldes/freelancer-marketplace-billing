@@ -41,6 +41,7 @@ model Entity {
   creditBalances EntityCreditBalance[]
   marketplaceEvents MarketplaceEvent[]
   subscriptions EntitySubscription[]
+  projects Project[]
 
   @@map("entities")
 }
@@ -69,6 +70,11 @@ model User {
 
   entityUsers EntityUser[]
   marketplaceEvents MarketplaceEvent[]
+  createdProjects Project[] @relation("ProjectCreator")
+  assignedProjects Project[] @relation("ProjectAssignee")
+  freelancerContracts ProjectContract[] @relation("FreelancerContracts")
+  clientContracts ProjectContract[] @relation("ClientContracts")
+  wallet Wallet?
 
   @@map("users")
 }
@@ -249,6 +255,125 @@ model EntitySubscription {
   entity Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
 
   @@map("entity_subscriptions")
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  entityId    String
+  title       String
+  description String
+  budget      Decimal       @db.Decimal(20, 6)
+  currency    String        @default("USD")
+  status      ProjectStatus @default(DRAFT)
+  createdById String
+  assignedTo  String?
+  startDate   DateTime?
+  endDate     DateTime?
+  completedAt DateTime?
+  metadata    Json?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  entity      Entity           @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  createdBy   User             @relation("ProjectCreator", fields: [createdById], references: [id])
+  assignedUser User?           @relation("ProjectAssignee", fields: [assignedTo], references: [id])
+  contracts   ProjectContract[]
+  walletTransactions WalletTransaction[]
+
+  @@index([entityId])
+  @@index([status])
+  @@index([createdById])
+  @@map("projects")
+}
+
+enum ProjectStatus {
+  DRAFT
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model ProjectContract {
+  id           String          @id @default(cuid())
+  projectId    String
+  freelancerId String
+  clientId     String
+  amount       Decimal         @db.Decimal(20, 6)
+  currency     String          @default("USD")
+  status       ContractStatus2 @default(DRAFT)
+  startDate    DateTime?
+  endDate      DateTime?
+  completedAt  DateTime?
+  approvedAt   DateTime?
+  metadata     Json?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  project      Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  freelancer   User    @relation("FreelancerContracts", fields: [freelancerId], references: [id])
+  client       User    @relation("ClientContracts", fields: [clientId], references: [id])
+  walletTransactions WalletTransaction[]
+
+  @@index([projectId])
+  @@index([freelancerId])
+  @@index([clientId])
+  @@map("project_contracts")
+}
+
+enum ContractStatus2 {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model Wallet {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  balance   Decimal  @default(0) @db.Decimal(20, 6)
+  currency  String   @default("USD")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions WalletTransaction[]
+
+  @@index([userId])
+  @@map("wallets")
+}
+
+model WalletTransaction {
+  id          String            @id @default(cuid())
+  walletId    String
+  amount      Decimal           @db.Decimal(20, 6)
+  currency    String            @default("USD")
+  type        TransactionType
+  description String
+  reference   String?
+  projectId   String?
+  contractId  String?
+  metadata    Json?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  wallet   Wallet           @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  project  Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  contract ProjectContract? @relation(fields: [contractId], references: [id], onDelete: SetNull)
+
+  @@index([walletId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("wallet_transactions")
+}
+
+enum TransactionType {
+  CREDIT
+  DEBIT
+  PAYMENT
+  REFUND
+  ESCROW
+  RELEASE
 }
 
 model Credit {

@@ -1,0 +1,33 @@
+# Railway configuration file for the monorepo deployment
+
+# Root settings, all values are default
+root:
+  start:
+
+# Service configuration for backend API
+# Assuming it lives under `apps/backend`
+backend:
+  start: npm run start
+  serviceType: nodejs
+  buildRoot: /apps/backend
+  buildCommand: npm run build
+  runCommand: npm run start
+
+# Database service configuration
+# Assuming an existing database service
+# service name: marketplace-db
+marketplace-db:
+  start:
+  serviceType: postgresql
+  postgresql:
+    version: 12
+
+# Service configuration for frontend
+# Assuming it lives under `apps/frontend`
+frontend:
+  start: npm run start
+  serviceType: nodejs
+  buildRoot: /apps/frontend
+  buildCommand: npm run build
+  runCommand: npm run start
+
