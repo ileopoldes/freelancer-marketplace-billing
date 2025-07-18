@@ -58,8 +58,18 @@ coverage/
 ehthumbs.db
 Thumbs.db
 
-# TypeScript cache
+# TypeScript cache and generated files
 *.tsbuildinfo
+*.d.ts
+*.js.map
+*.d.ts.map
+
+# Compiled JavaScript files in packages (exclude source JS files)
+packages/*/src/**/*.js
+
+# Exclude Next.js and Prisma generated files from the above rule
+!apps/frontend/next-env.d.ts
+!apps/backend/prisma/schema.prisma
 
 # Optional npm cache directory
 .npm

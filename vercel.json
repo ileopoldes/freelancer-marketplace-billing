@@ -25,9 +25,5 @@
       "src": "/(.*)",
       "dest": "apps/frontend/$1"
     }
-  ],
-  "env": {
-    "JWT_SECRET": "@jwt-secret",
-    "NODE_ENV": "production"
-  }
+  ]
 }
