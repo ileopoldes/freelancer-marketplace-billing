@@ -14,7 +14,7 @@ export function OrganizationList({
   onEdit,
   onDelete,
 }: OrganizationListProps) {
-  if (organizations.length === 0) {
+  if (!organizations || organizations.length === 0) {
     return (
       <div className="text-center py-8">
         <p className="text-gray-500">No organizations found.</p>

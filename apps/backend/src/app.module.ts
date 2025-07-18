@@ -1,7 +1,7 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { ThrottlerModule } from "@nestjs/throttler";
-import { APP_FILTER } from "@nestjs/core";
+import { APP_FILTER, APP_GUARD } from "@nestjs/core";
 import { PrismaModule } from "./prisma/prisma.module";
 import { CustomersModule } from "./customers/customers.module";
 import { InvoicesModule } from "./invoices/invoices.module";
@@ -20,6 +20,10 @@ import { CreditsModule } from "./modules/credits/credits.module";
 
 // Global error handler
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
+
+// Billing middleware
+import { BillingModule as BillingMiddlewareModule } from "./middleware/billing.module";
+import { BillingAccessGuard } from "./guards/billing-access.guard";
 
 @Module({
   imports: [
@@ -51,6 +55,7 @@ import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
     EntitiesModule,
     ProjectsModule,
     CreditsModule,
+    BillingMiddlewareModule,
     // SubscriptionsModule,
     // ContractsModule,
     // PermissionsModule,
@@ -61,6 +66,10 @@ import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
     {
       provide: APP_FILTER,
       useClass: HttpExceptionFilter,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: BillingAccessGuard,
     },
   ],
 })

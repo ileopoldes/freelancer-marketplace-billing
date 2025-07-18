@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Freelancer Marketplace Billing Backend API",
   "main": "dist/apps/backend/src/main.js",
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  },
   "scripts": {
     "dev": "node dev-start.js",
     "build": "nest build",

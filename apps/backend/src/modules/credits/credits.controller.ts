@@ -9,19 +9,26 @@ import {
   HttpStatus,
   ValidationPipe,
   UseFilters,
+  UseGuards,
 } from "@nestjs/common";
 import { CreditsService } from "./credits.service";
 import { PurchaseCreditsDto } from "./dto/purchase-credits.dto";
 import { HttpExceptionFilter } from "../../common/filters/http-exception.filter";
+import { BillingAccessGuard } from "../../guards/billing-access.guard";
+import { BillingAccess } from "../../decorators/billing-access.decorator";
 
 @Controller("credits")
 @UseFilters(HttpExceptionFilter)
+@UseGuards(BillingAccessGuard)
 export class CreditsController {
   constructor(private readonly creditsService: CreditsService) {}
 
   @Post("purchase")
   @HttpCode(HttpStatus.CREATED)
-  async purchaseCredits(@Body(ValidationPipe) purchaseCreditsDto: PurchaseCreditsDto) {
+  @BillingAccess({ adminOnly: true })
+  async purchaseCredits(
+    @Body(ValidationPipe) purchaseCreditsDto: PurchaseCreditsDto,
+  ) {
     return this.creditsService.purchaseCredits(purchaseCreditsDto);
   }
 
@@ -46,8 +53,15 @@ export class CreditsController {
 
   @Post("deduct")
   @HttpCode(HttpStatus.OK)
+  @BillingAccess({ adminOnly: true })
   async deductCredits(
-    @Body(ValidationPipe) deductCreditsDto: { entityId: string; amount: number; userId: string; reason: string },
+    @Body(ValidationPipe)
+    deductCreditsDto: {
+      entityId: string;
+      amount: number;
+      userId: string;
+      reason: string;
+    },
   ) {
     return this.creditsService.deductCredits(
       deductCreditsDto.entityId,
