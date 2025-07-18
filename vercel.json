@@ -27,7 +27,6 @@
     }
   ],
   "env": {
-    "DATABASE_URL": "@postgres-url",
     "JWT_SECRET": "@jwt-secret",
     "NODE_ENV": "production"
   }
