@@ -4,7 +4,7 @@
   "description": "Freelancer Marketplace Billing Backend API",
   "main": "dist/apps/backend/src/main.js",
   "scripts": {
-    "dev": "nest start --watch",
+    "dev": "node dev-start.js",
     "build": "nest build",
     "start": "node dist/apps/backend/src/main.js",
     "start:dev": "nest start --watch",
