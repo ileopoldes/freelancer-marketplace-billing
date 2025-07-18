@@ -13,6 +13,10 @@ import { AppService } from "./app.service";
 import { OrganizationsModule } from "./modules/organizations/organizations.module";
 import { EntitiesModule } from "./modules/entities/entities.module";
 import { ProjectsModule } from "./modules/projects/projects.module";
+import { CreditsModule } from "./modules/credits/credits.module";
+// import { SubscriptionsModule } from "./modules/subscriptions/subscriptions.module";
+// import { ContractsModule } from "./modules/contracts/contracts.module";
+// import { PermissionsModule } from "./modules/permissions/permissions.module";
 
 // Global error handler
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
@@ -46,6 +50,10 @@ import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
     OrganizationsModule,
     EntitiesModule,
     ProjectsModule,
+    CreditsModule,
+    // SubscriptionsModule,
+    // ContractsModule,
+    // PermissionsModule,
   ],
   controllers: [AppController],
   providers: [

@@ -485,7 +485,7 @@ describe("Error Handling and Database Resilience", () => {
       expect(results).toHaveLength(10000);
       results.forEach((result) => {
         expect(result.success).toBe(false);
-        expect(result.reason).toBe("JavaScript heap out of memory");
+        expect(result.reason).toBe("Validation failed: JavaScript heap out of memory");
       });
     });
 

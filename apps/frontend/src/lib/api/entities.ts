@@ -27,30 +27,30 @@ export interface UpdateEntityRequest {
 export const entitiesApi = {
   // Get all entities
   getAll: async (): Promise<Entity[]> => {
-    const response = await apiClient.get("/entities");
+    const response = await apiClient.get("/api/entities");
     return response.data;
   },
 
   // Get entity by ID
   getById: async (id: string): Promise<Entity> => {
-    const response = await apiClient.get(`/entities/${id}`);
+    const response = await apiClient.get(`/api/entities/${id}`);
     return response.data;
   },
 
   // Create entity
   create: async (data: CreateEntityRequest): Promise<Entity> => {
-    const response = await apiClient.post("/entities", data);
+    const response = await apiClient.post("/api/entities", data);
     return response.data;
   },
 
   // Update entity
   update: async (id: string, data: UpdateEntityRequest): Promise<Entity> => {
-    const response = await apiClient.patch(`/entities/${id}`, data);
+    const response = await apiClient.patch(`/api/entities/${id}`, data);
     return response.data;
   },
 
   // Delete entity
   delete: async (id: string): Promise<void> => {
-    await apiClient.delete(`/entities/${id}`);
+    await apiClient.delete(`/api/entities/${id}`);
   },
 };

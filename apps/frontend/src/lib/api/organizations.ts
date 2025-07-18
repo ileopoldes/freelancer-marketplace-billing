@@ -39,19 +39,19 @@ export interface UpdateOrganizationRequest {
 export const organizationsApi = {
   // Get all organizations
   getAll: async (): Promise<Organization[]> => {
-    const response = await apiClient.get("/organizations");
+    const response = await apiClient.get("/api/organizations");
     return response.data;
   },
 
   // Get organization by ID
   getById: async (id: string): Promise<Organization> => {
-    const response = await apiClient.get(`/organizations/${id}`);
+    const response = await apiClient.get(`/api/organizations/${id}`);
     return response.data;
   },
 
   // Create organization
   create: async (data: CreateOrganizationRequest): Promise<Organization> => {
-    const response = await apiClient.post("/organizations", data);
+    const response = await apiClient.post("/api/organizations", data);
     return response.data;
   },
 
@@ -60,12 +60,12 @@ export const organizationsApi = {
     id: string,
     data: UpdateOrganizationRequest,
   ): Promise<Organization> => {
-    const response = await apiClient.patch(`/organizations/${id}`, data);
+    const response = await apiClient.patch(`/api/organizations/${id}`, data);
     return response.data;
   },
 
   // Delete organization
   delete: async (id: string): Promise<void> => {
-    await apiClient.delete(`/organizations/${id}`);
+    await apiClient.delete(`/api/organizations/${id}`);
   },
 };

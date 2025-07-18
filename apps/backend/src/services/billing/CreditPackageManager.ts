@@ -108,15 +108,20 @@ export class CreditPackageManager {
   /**
    * Purchase a credit package for an entity
    */
-  async purchaseCreditPackage(
+async purchaseCreditPackage(
     entityId: string,
     packageId: string,
     _purchasedBy: string,
   ): Promise<CreditPackagePurchase> {
-    // Get the credit package details
-    const creditPackage = await this.prisma.creditPackage.findUnique({
-      where: { id: packageId, active: true },
-    });
+    // Get credit package details and existing balance in parallel
+    const [creditPackage, existingBalance] = await Promise.all([
+      this.prisma.creditPackage.findUnique({
+        where: { id: packageId, active: true },
+      }),
+      this.prisma.entityCreditBalance.findFirst({
+        where: { entityId },
+      }),
+    ]);
 
     if (!creditPackage) {
       throw new Error(`Credit package ${packageId} not found or inactive`);
@@ -126,11 +131,6 @@ export class CreditPackageManager {
       creditPackage.creditsAmount.toString(),
     );
     const price = moneyFromDecimalString(creditPackage.price.toString());
-
-    // Create or update entity credit balance
-    const existingBalance = await this.prisma.entityCreditBalance.findFirst({
-      where: { entityId },
-    });
 
     if (existingBalance) {
       // Add to existing balance

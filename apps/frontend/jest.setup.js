@@ -1,2 +1,8 @@
 // Jest setup file for frontend tests
-import "@testing-library/jest-dom";
+require('@testing-library/jest-dom');
+
+// Mock window.confirm
+Object.defineProperty(window, 'confirm', {
+  writable: true,
+  value: jest.fn(() => true),
+});

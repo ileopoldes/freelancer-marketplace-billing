@@ -62,30 +62,30 @@ export const projectsApi = {
   // Get all projects
   getAll: async (entityId?: string): Promise<Project[]> => {
     const params = entityId ? { entityId } : undefined;
-    const response = await apiClient.get("/projects", { params });
+    const response = await apiClient.get("/api/projects", { params });
     return response.data;
   },
 
   // Get project by ID
   getById: async (id: string): Promise<Project> => {
-    const response = await apiClient.get(`/projects/${id}`);
+    const response = await apiClient.get(`/api/projects/${id}`);
     return response.data;
   },
 
   // Create project
   create: async (data: CreateProjectRequest): Promise<Project> => {
-    const response = await apiClient.post("/projects", data);
+    const response = await apiClient.post("/api/projects", data);
     return response.data;
   },
 
   // Update project
   update: async (id: string, data: UpdateProjectRequest): Promise<Project> => {
-    const response = await apiClient.patch(`/projects/${id}`, data);
+    const response = await apiClient.patch(`/api/projects/${id}`, data);
     return response.data;
   },
 
   // Delete project
   delete: async (id: string): Promise<void> => {
-    await apiClient.delete(`/projects/${id}`);
+    await apiClient.delete(`/api/projects/${id}`);
   },
 };

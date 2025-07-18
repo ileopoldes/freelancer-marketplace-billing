@@ -6,6 +6,28 @@ import {
 } from "../pricing/PayAsYouGoPricer";
 import { CreditPackageManager } from "./CreditPackageManager";
 
+// Custom error classes
+export class MarketplaceEventError extends Error {
+  constructor(message: string, public eventId?: string, public entityId?: string) {
+    super(message);
+    this.name = 'MarketplaceEventError';
+  }
+}
+
+export class ValidationError extends MarketplaceEventError {
+  constructor(message: string, public field?: string) {
+    super(message);
+    this.name = 'ValidationError';
+  }
+}
+
+export class CreditDeductionError extends MarketplaceEventError {
+  constructor(message: string, public availableCredits?: Money, public requiredCredits?: Money) {
+    super(message);
+    this.name = 'CreditDeductionError';
+  }
+}
+
 export interface MarketplaceEventRequest {
   entityId: string;
   userId: string;
@@ -49,92 +71,94 @@ export class MarketplaceEventProcessor {
   /**
    * Process a marketplace event and determine billing method
    */
-  async processEvent(
+async processEvent(
     eventRequest: MarketplaceEventRequest,
     options: EventProcessingOptions = {},
   ): Promise<EventProcessingResult> {
-    // 1. Validate the event request
     await this.validateEventRequest(eventRequest);
+    const calculation = await this.calculateEventPricing(eventRequest);
+    const marketplaceEvent = await this.storeMarketplaceEvent(eventRequest, calculation);
 
-    // 2. Calculate pricing for the event
-    const calculation = await this.payAsYouGoPricer.calculateEventPricing(
+    if (!options.forceInvoicing) {
+      const result = await this.attemptCreditDeduction(eventRequest, calculation, marketplaceEvent);
+      if (result) return result;
+    }
+
+    return this.generateInvoiceFallback(eventRequest, marketplaceEvent.id, calculation, options.forceInvoicing);
+  }
+
+  private async calculateEventPricing(eventRequest: MarketplaceEventRequest): Promise<PayAsYouGoCalculation> {
+    return this.payAsYouGoPricer.calculateEventPricing(
       eventRequest.entityId,
       eventRequest.eventType,
       eventRequest.quantity,
     );
+  }
 
-    // 3. Store the marketplace event
-    const marketplaceEvent = await this.prisma.marketplaceEvent.create({
+  private async storeMarketplaceEvent(eventRequest: MarketplaceEventRequest, calculation: PayAsYouGoCalculation) {
+    return this.prisma.marketplaceEvent.create({
       data: {
         entityId: eventRequest.entityId,
         userId: eventRequest.userId,
         eventType: eventRequest.eventType,
         quantity: eventRequest.quantity,
-        unitPrice: calculation.finalAmount.amount
-          .div(eventRequest.quantity)
-          .toNumber(),
-        metadata: eventRequest.metadata
-          ? JSON.stringify(eventRequest.metadata)
-          : null,
+        unitPrice: calculation.finalAmount.amount.div(eventRequest.quantity).toNumber(),
+        metadata: eventRequest.metadata ? JSON.stringify(eventRequest.metadata) : null,
       },
     });
+  }
 
-    // 4. Determine billing method (credits vs invoice)
-    if (!options.forceInvoicing) {
-      const creditBalance =
-        await this.creditPackageManager.getEntityCreditBalance(
-          eventRequest.entityId,
-        );
+  private async attemptCreditDeduction(eventRequest: MarketplaceEventRequest, calculation: PayAsYouGoCalculation, marketplaceEvent: any): Promise<EventProcessingResult | null> {
+    const creditBalance = await this.creditPackageManager.getEntityCreditBalance(
+      eventRequest.entityId,
+    );
 
-      if (
-        creditBalance &&
-        creditBalance.availableCredits.amount.greaterThanOrEqualTo(
-          calculation.finalAmount.amount,
-        )
-      ) {
-        // Try to deduct from credits
-        const deductionResult =
-          await this.creditPackageManager.deductCreditsForEvent(
-            eventRequest.entityId,
-            eventRequest.userId,
-            eventRequest.eventType,
-            calculation.finalAmount,
-            `${eventRequest.eventType} event processing`,
-          );
+    if (creditBalance && creditBalance.availableCredits.amount.greaterThanOrEqualTo(
+      calculation.finalAmount.amount,
+    )) {
+      const deductionResult = await this.creditPackageManager.deductCreditsForEvent(
+        eventRequest.entityId,
+        eventRequest.userId,
+        eventRequest.eventType,
+        calculation.finalAmount,
+        `${eventRequest.eventType} event processing`,
+      );
 
-        if (deductionResult.success) {
-          return {
-            success: true,
-            eventId: marketplaceEvent.id,
-            calculation,
-            billingMethod: "CREDITS",
-            creditDeduction: {
-              deductedAmount: deductionResult.deductedAmount,
-              remainingBalance: deductionResult.remainingBalance,
-            },
-          };
-        } else {
-          // Credit deduction failed, fall back to invoicing
-          return {
-            success: true,
-            eventId: marketplaceEvent.id,
-            calculation,
-            billingMethod: "INVOICE",
-            reason: `Credit deduction failed: ${deductionResult.reason}`,
-          };
-        }
+      if (deductionResult.success) {
+        return {
+          success: true,
+          eventId: marketplaceEvent.id,
+          calculation,
+          billingMethod: "CREDITS",
+          creditDeduction: {
+            deductedAmount: deductionResult.deductedAmount,
+            remainingBalance: deductionResult.remainingBalance,
+          },
+        };
+      } else {
+        return {
+          success: true,
+          eventId: marketplaceEvent.id,
+          calculation,
+          billingMethod: "INVOICE",
+          reason: `Credit deduction failed: ${deductionResult.reason}`,
+        };
       }
     }
+  }
 
-    // 5. Fall back to invoice generation
+  private generateInvoiceFallback(
+    eventRequest: MarketplaceEventRequest,
+    eventId: string,
+    calculation: PayAsYouGoCalculation,
+    forceInvoicing: boolean
+  ): EventProcessingResult {
     return {
       success: true,
-      eventId: marketplaceEvent.id,
+      eventId,
       calculation,
       billingMethod: "INVOICE",
-      reason: options.forceInvoicing
-        ? "Forced invoicing"
-        : "Insufficient credits",
+      reason: forceInvoicing ? "Forced invoicing" : "Insufficient credits",
     };
   }
 
@@ -145,14 +169,11 @@ export class MarketplaceEventProcessor {
     events: MarketplaceEventRequest[],
     options: EventProcessingOptions = {},
   ): Promise<EventProcessingResult[]> {
-    const results: EventProcessingResult[] = [];
-
-    for (const event of events) {
+    const eventPromises = events.map(async (event) => {
       try {
-        const result = await this.processEvent(event, options);
-        results.push(result);
+        return await this.processEvent(event, options);
       } catch (error) {
-        results.push({
+        return {
           success: false,
           eventId: "",
           calculation: {
@@ -162,13 +183,13 @@ export class MarketplaceEventProcessor {
             discountApplied: createMoney("0"),
             finalAmount: createMoney("0"),
           },
-          billingMethod: "INVOICE",
+          billingMethod: "INVOICE" as const,
           reason: error instanceof Error ? error.message : "Unknown error",
-        });
+        };
       }
-    }
+    });
 
-    return results;
+    return Promise.all(eventPromises);
   }
 
   /**
@@ -292,40 +313,61 @@ export class MarketplaceEventProcessor {
   private async validateEventRequest(
     eventRequest: MarketplaceEventRequest,
   ): Promise<void> {
-    // Validate entity exists
-    const entity = await this.prisma.entity.findUnique({
-      where: { id: eventRequest.entityId },
-      select: { id: true },
-    });
+    try {
+      // Validate entity exists
+      const entity = await this.prisma.entity.findUnique({
+        where: { id: eventRequest.entityId },
+        select: { id: true },
+      });
 
-    if (!entity) {
-      throw new Error(`Entity ${eventRequest.entityId} not found`);
-    }
+      if (!entity) {
+        throw new ValidationError(
+          `Entity ${eventRequest.entityId} not found`,
+          'entityId'
+        );
+      }
 
-    // Validate user exists and belongs to entity
-    const entityUser = await this.prisma.entityUser.findFirst({
-      where: {
-        entityId: eventRequest.entityId,
-        userId: eventRequest.userId,
-        status: "ACTIVE",
-      },
-    });
+      // Validate user exists and belongs to entity
+      const entityUser = await this.prisma.entityUser.findFirst({
+        where: {
+          entityId: eventRequest.entityId,
+          userId: eventRequest.userId,
+          status: "ACTIVE",
+        },
+      });
 
-    if (!entityUser) {
-      throw new Error(
-        `User ${eventRequest.userId} is not an active member of entity ${eventRequest.entityId}`,
+      if (!entityUser) {
+        throw new ValidationError(
+          `User ${eventRequest.userId} is not an active member of entity ${eventRequest.entityId}`,
+          'userId'
+        );
+      }
+
+      // Validate event quantity
+      if (eventRequest.quantity <= 0) {
+        throw new ValidationError(
+          "Event quantity must be greater than zero",
+          'quantity'
+        );
+      }
+
+      // Validate event type
+      const validEventTypes = ["project_posted", "freelancer_hired", "custom"];
+      if (!validEventTypes.includes(eventRequest.eventType)) {
+        throw new ValidationError(
+          `Invalid event type: ${eventRequest.eventType}`,
+          'eventType'
+        );
+      }
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        throw error;
+      }
+      throw new MarketplaceEventError(
+        `Validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        undefined,
+        eventRequest.entityId
       );
-    }
-
-    // Validate event quantity
-    if (eventRequest.quantity <= 0) {
-      throw new Error("Event quantity must be greater than zero");
-    }
-
-    // Validate event type
-    const validEventTypes = ["project_posted", "freelancer_hired", "custom"];
-    if (!validEventTypes.includes(eventRequest.eventType)) {
-      throw new Error(`Invalid event type: ${eventRequest.eventType}`);
     }
   }
 }
