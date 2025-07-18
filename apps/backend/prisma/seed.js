@@ -1,7 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const client_1 = require("@prisma/client");
-const shared_1 = require("@billforge/shared");
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const shared_1 = require("@marketplace/shared");
 const prisma = new client_1.PrismaClient();
 // Demo data configuration
 const DEMO_CUSTOMERS_COUNT = 50;

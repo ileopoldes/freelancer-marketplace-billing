@@ -133,7 +133,7 @@ class ApiClient {
 
   // Health check
   async healthCheck(): Promise<{ status: string; timestamp: string }> {
-    return this.request<{ status: string; timestamp: string }>("/health");
+    return this.request<{ status: string; timestamp: string }>("/api/health");
   }
 }
 

@@ -20,7 +20,7 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@billforge/shared": ["./packages/shared/src"]
+      "@freelancer-marketplace-billing/shared": ["./packages/shared/src"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

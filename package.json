@@ -8,7 +8,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev --workspace=@marketplace/backend\" \"npm run dev --workspace=@marketplace/frontend\"",
+    "dev": "concurrently \"npm run dev --workspace=@marketplace/frontend\" \"npm run dev --workspace=@marketplace/backend\"",
     "build": "npm run build --workspaces",
     "test": "npm run test --workspaces",
     "lint": "npm run lint --workspaces",
