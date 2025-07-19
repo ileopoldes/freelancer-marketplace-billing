@@ -224,9 +224,12 @@ model EntityCreditBalance {
 
 model MarketplaceEvent {
   id        String   @id @default(cuid())
+  type      String?
   entityId  String
   userId    String
-  eventType String
+  eventType String?
+  amount    Decimal?  @db.Decimal(20, 6)
+  description String?
   quantity  Int
   unitPrice Decimal  @db.Decimal(20, 6)
   timestamp DateTime @default(now())
@@ -236,6 +239,11 @@ model MarketplaceEvent {
   entity Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([entityId])
+  @@index([userId])
+  @@index([eventType])
+  @@index([timestamp])
+  @@index([entityId, timestamp])
   @@map("marketplace_events")
 }
 

@@ -13,6 +13,7 @@ import {
 } from "@nestjs/common";
 import { CreditsService } from "./credits.service";
 import { PurchaseCreditsDto } from "./dto/purchase-credits.dto";
+import { AddCreditsDto } from "./dto/add-credits.dto";
 import { HttpExceptionFilter } from "../../common/filters/http-exception.filter";
 import { BillingAccessGuard } from "../../guards/billing-access.guard";
 import { BillingAccess } from "../../decorators/billing-access.decorator";
@@ -30,6 +31,18 @@ export class CreditsController {
     @Body(ValidationPipe) purchaseCreditsDto: PurchaseCreditsDto,
   ) {
     return this.creditsService.purchaseCredits(purchaseCreditsDto);
+  }
+
+  @Post("add")
+  @HttpCode(HttpStatus.CREATED)
+  @BillingAccess({ adminOnly: true })
+  async addCredits(@Body(ValidationPipe) addCreditsDto: AddCreditsDto) {
+    return this.creditsService.addCredits(
+      addCreditsDto.entityId,
+      addCreditsDto.amount,
+      addCreditsDto.description,
+      addCreditsDto.type,
+    );
   }
 
   @Get("balance/:entityId")

@@ -159,21 +159,6 @@ export function CustomerTeamManager({
     setLoading(true);
 
     try {
-      // Create the customer with user account
-      const customerData = {
-        firstName: customerForm.firstName,
-        lastName: customerForm.lastName,
-        email: customerForm.email,
-        phone: customerForm.phone,
-        entityId: entityId,
-        status: "ACTIVE" as const,
-        user: {
-          username: customerForm.username,
-          password: customerForm.password,
-          email: customerForm.email,
-        },
-      };
-
       // For now, we'll use the create method from the API
       const createData = {
         entityId: entityId,

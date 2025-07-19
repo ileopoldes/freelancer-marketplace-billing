@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from "@nestjs/common";
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { CreditPackageManager } from "../../services/billing/CreditPackageManager";
 import { PurchaseCreditsDto } from "./dto/purchase-credits.dto";
@@ -37,8 +41,9 @@ export class CreditsService {
   }
 
   async getBalance(entityId: string) {
-    const balance = await this.creditPackageManager.getEntityCreditBalance(entityId);
-    
+    const balance =
+      await this.creditPackageManager.getEntityCreditBalance(entityId);
+
     if (!balance) {
       return {
         entityId,
@@ -88,21 +93,96 @@ export class CreditsService {
   }
 
   async getAvailablePackages() {
-    const packages = await this.creditPackageManager.getAvailableCreditPackages();
+    const packages =
+      await this.creditPackageManager.getAvailableCreditPackages();
 
     return {
       data: packages,
     };
   }
 
-  async deductCredits(entityId: string, amount: number, userId: string, reason: string) {
+  async addCredits(
+    entityId: string,
+    amount: number,
+    description: string,
+    type = "MANUAL",
+  ) {
+    if (amount <= 0) {
+      throw new BadRequestException("Amount must be greater than 0");
+    }
+
+    // Verify entity exists
+    const entity = await this.prisma.entity.findUnique({
+      where: { id: entityId },
+    });
+
+    if (!entity) {
+      throw new NotFoundException(`Entity with ID ${entityId} not found`);
+    }
+
+    // Get existing balance or create new one
+    const existingBalance = await this.prisma.entityCreditBalance.findFirst({
+      where: { entityId },
+    });
+
+    if (existingBalance) {
+      // Add to existing balance
+      await this.prisma.entityCreditBalance.update({
+        where: { id: existingBalance.id },
+        data: {
+          totalCredits: {
+            increment: amount,
+          },
+        },
+      });
+    } else {
+      // Create new balance
+      await this.prisma.entityCreditBalance.create({
+        data: {
+          entityId,
+          totalCredits: amount,
+          usedCredits: 0,
+        },
+      });
+    }
+
+    // Create a transaction record in marketplace events for audit trail
+    await this.prisma.marketplaceEvent.create({
+      data: {
+        eventType: "CREDIT_ADDED",
+        entityId: entityId,
+        userId: "system", // This would ideally be the admin user ID
+        quantity: 1,
+        unitPrice: amount,
+        description: `${type}: ${description}`,
+        metadata: { type, description },
+      },
+    });
+
+    // Get updated balance
+    const updatedBalance =
+      await this.creditPackageManager.getEntityCreditBalance(entityId);
+
+    return {
+      success: true,
+      message: "Credits added successfully",
+      data: updatedBalance,
+    };
+  }
+
+  async deductCredits(
+    entityId: string,
+    amount: number,
+    userId: string,
+    reason: string,
+  ) {
     if (amount <= 0) {
       throw new BadRequestException("Amount must be greater than 0");
     }
 
     const { createMoney } = await import("@marketplace/shared");
     const creditAmount = createMoney(amount.toString());
-    
+
     const result = await this.creditPackageManager.deductCreditsForEvent(
       entityId,
       userId,
