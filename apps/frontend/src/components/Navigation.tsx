@@ -2,9 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/components/AuthProvider";
 
 export function Navigation() {
   const pathname = usePathname();
+
+  // Always call hooks first (required by React hooks rules)
+  const auth = useAuth();
+
+  // Don't show navigation on login page or if user is not authenticated
+  if (pathname === "/login" || !auth.isAuthenticated) {
+    return null;
+  }
 
   const navItems = [
     { href: "/", label: "Dashboard" },
@@ -38,10 +47,25 @@ export function Navigation() {
               </Link>
             ))}
           </div>
-          <div className="flex items-center">
-            <span className="text-sm text-gray-500">
-              Multi-Tenant Billing Platform
-            </span>
+          <div className="flex items-center space-x-4">
+            {auth.user && (
+              <>
+                <span className="text-sm text-gray-600">
+                  Welcome, {auth.user.email}
+                  {auth.user.role === "admin" && (
+                    <span className="ml-2 px-2 py-1 text-xs bg-indigo-100 text-indigo-700 rounded-full">
+                      Admin
+                    </span>
+                  )}
+                </span>
+                <button
+                  onClick={auth.logout}
+                  className="text-sm text-gray-600 hover:text-red-600 transition-colors"
+                >
+                  Logout
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

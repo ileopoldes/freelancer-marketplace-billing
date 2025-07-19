@@ -15,6 +15,12 @@ export default function CustomersPage() {
   const [creatingUser, setCreatingUser] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Filter states
+  const [organizationFilter, setOrganizationFilter] = useState<string>("");
+  const [entityFilter, setEntityFilter] = useState<string>("");
+  const [teamFilter, setTeamFilter] = useState<string>("");
+  const [roleFilter, setRoleFilter] = useState<UserRole | "">("");
+
   const usersPerPage = 10;
   const totalPages = Math.ceil(totalUsers / usersPerPage);
 
@@ -260,7 +266,72 @@ export default function CustomersPage() {
 
       <div className="bg-white shadow rounded-lg">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-medium text-gray-900">All Users</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-medium text-gray-900">All Users</h2>
+          </div>
+
+          {/* Filters */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Filter by Role
+              </label>
+              <select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value as UserRole | "")}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="">All Roles</option>
+                <option value={UserRole.ADMIN}>System Admin</option>
+                <option value={UserRole.ORGANIZATION_ADMIN}>
+                  Organization Admin
+                </option>
+                <option value={UserRole.ENTITY_ADMIN}>Entity Admin</option>
+                <option value={UserRole.TEAM_LEAD}>Team Lead</option>
+                <option value={UserRole.USER}>Regular User</option>
+                <option value={UserRole.FREELANCER}>Freelancer</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Filter by Organization
+              </label>
+              <input
+                type="text"
+                value={organizationFilter}
+                onChange={(e) => setOrganizationFilter(e.target.value)}
+                placeholder="Organization name..."
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Filter by Entity
+              </label>
+              <input
+                type="text"
+                value={entityFilter}
+                onChange={(e) => setEntityFilter(e.target.value)}
+                placeholder="Entity name..."
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Filter by Team
+              </label>
+              <input
+                type="text"
+                value={teamFilter}
+                onChange={(e) => setTeamFilter(e.target.value)}
+                placeholder="Team name..."
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+          </div>
         </div>
 
         {users.length === 0 ? (
@@ -306,9 +377,18 @@ export default function CustomersPage() {
                     >
                       {user.status}
                     </span>
-                    <button className="text-sm text-indigo-600 hover:text-indigo-900">
-                      Edit
-                    </button>
+                    <div className="relative group">
+                      <button
+                        className="text-sm text-gray-400 cursor-not-allowed"
+                        disabled
+                      >
+                        Edit
+                      </button>
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                        Not available yet
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
