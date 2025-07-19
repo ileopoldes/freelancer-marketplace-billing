@@ -25,6 +25,9 @@ import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 import { BillingModule as BillingMiddlewareModule } from "./middleware/billing.module";
 import { BillingAccessGuard } from "./guards/billing-access.guard";
 
+// Events module
+import { EventsModule } from "./common/events/events.module";
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -56,6 +59,7 @@ import { BillingAccessGuard } from "./guards/billing-access.guard";
     ProjectsModule,
     CreditsModule,
     BillingMiddlewareModule,
+    EventsModule,
     // SubscriptionsModule,
     // ContractsModule,
     // PermissionsModule,
