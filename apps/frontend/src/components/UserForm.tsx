@@ -222,6 +222,7 @@ export function UserForm({ role, onSubmit, onCancel }: UserFormProps) {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* First Name & Last Name */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label
@@ -244,7 +245,6 @@ export function UserForm({ role, onSubmit, onCancel }: UserFormProps) {
               <p className="mt-1 text-sm text-red-600">{errors.firstName}</p>
             )}
           </div>
-
           <div>
             <label
               htmlFor="lastName"
@@ -268,29 +268,29 @@ export function UserForm({ role, onSubmit, onCancel }: UserFormProps) {
           </div>
         </div>
 
-        <div>
-          <label
-            htmlFor="email"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Email Address *
-          </label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
-              errors.email ? "border-red-300" : "border-gray-300"
-            }`}
-          />
-          {errors.email && (
-            <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-          )}
-        </div>
-
+        {/* Email & Username */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Email Address *
+            </label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
+                errors.email ? "border-red-300" : "border-gray-300"
+              }`}
+            />
+            {errors.email && (
+              <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+            )}
+          </div>
           <div>
             <label
               htmlFor="username"
@@ -312,7 +312,10 @@ export function UserForm({ role, onSubmit, onCancel }: UserFormProps) {
               <p className="mt-1 text-sm text-red-600">{errors.username}</p>
             )}
           </div>
+        </div>
 
+        {/* Password & Confirm Password */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label
               htmlFor="password"
@@ -334,30 +337,29 @@ export function UserForm({ role, onSubmit, onCancel }: UserFormProps) {
               <p className="mt-1 text-sm text-red-600">{errors.password}</p>
             )}
           </div>
-        </div>
-
-        <div>
-          <label
-            htmlFor="confirmPassword"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Confirm Password *
-          </label>
-          <input
-            type="password"
-            id="confirmPassword"
-            name="confirmPassword"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-            className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
-              errors.confirmPassword ? "border-red-300" : "border-gray-300"
-            }`}
-          />
-          {errors.confirmPassword && (
-            <p className="mt-1 text-sm text-red-600">
-              {errors.confirmPassword}
-            </p>
-          )}
+          <div>
+            <label
+              htmlFor="confirmPassword"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Confirm Password *
+            </label>
+            <input
+              type="password"
+              id="confirmPassword"
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
+                errors.confirmPassword ? "border-red-300" : "border-gray-300"
+              }`}
+            />
+            {errors.confirmPassword && (
+              <p className="mt-1 text-sm text-red-600">
+                {errors.confirmPassword}
+              </p>
+            )}
+          </div>
         </div>
 
         {requiresOrganization && (
