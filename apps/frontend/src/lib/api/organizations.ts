@@ -1,4 +1,5 @@
 import { apiClient } from "./client";
+import { BillingModel } from "../enums";
 
 export interface Organization {
   id: string;
@@ -16,7 +17,7 @@ export interface Entity {
   organizationId: string;
   name: string;
   description?: string;
-  billingModel: string;
+  billingModel: BillingModel;
   status: string;
   createdAt: string;
   updatedAt: string;
@@ -27,14 +28,14 @@ export interface CreateOrganizationRequest {
   domain?: string;
   billingEmail: string;
   description?: string;
-  billingModel: "PAY_AS_YOU_GO" | "PREPAID_CREDITS" | "SEAT_BASED";
+  billingModel: BillingModel;
 }
 
 export interface UpdateOrganizationRequest {
   name?: string;
   domain?: string;
   billingEmail?: string;
-  billingModel?: "PAY_AS_YOU_GO" | "PREPAID_CREDITS" | "SEAT_BASED";
+  billingModel?: BillingModel;
 }
 
 export const organizationsApi = {

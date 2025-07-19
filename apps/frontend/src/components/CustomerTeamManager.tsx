@@ -1,15 +1,23 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { teamsApi, entityUsersApi } from "@/lib/api/teams";
 
 interface Customer {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
+  phone?: string;
   teamId?: string;
   entityId: string;
-  status: string;
+  status: "ACTIVE" | "INACTIVE";
   createdAt: string;
+  user?: {
+    id: string;
+    username: string;
+    hashedPassword?: string;
+  };
 }
 
 interface Team {
@@ -18,8 +26,8 @@ interface Team {
   description?: string;
   entityId: string;
   memberCount: number;
-  status: string;
   createdAt: string;
+  updatedAt: string;
 }
 
 interface CustomerTeamManagerProps {
@@ -39,11 +47,18 @@ export function CustomerTeamManager({
   const [showAddCustomerForm, setShowAddCustomerForm] = useState(false);
   const [showAddTeamForm, setShowAddTeamForm] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [checkingUsername, setCheckingUsername] = useState(false);
 
   const [customerForm, setCustomerForm] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
+    phone: "",
     teamId: "",
+    username: "",
+    password: "",
   });
 
   const [teamForm, setTeamForm] = useState({
@@ -51,19 +66,162 @@ export function CustomerTeamManager({
     description: "",
   });
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [teamsData, customersData] = await Promise.all([
+          teamsApi.getByEntity(entityId),
+          entityUsersApi.getByEntity(entityId),
+        ]);
+
+        setTeams(
+          teamsData.map((team) => ({
+            ...team,
+            memberCount: team.memberCount || 0,
+          })),
+        );
+
+        // Map entity users to customers format
+        const mappedCustomers: Customer[] = customersData.map((entityUser) => ({
+          id: entityUser.id,
+          firstName: entityUser.user?.name?.split(" ")[0] || "",
+          lastName: entityUser.user?.name?.split(" ")[1] || "",
+          email: entityUser.user?.email || "",
+          phone: "",
+          teamId: undefined, // Will need to be set based on team assignments
+          entityId: entityId,
+          status: (entityUser.status === "ACTIVE" ? "ACTIVE" : "INACTIVE") as
+            | "ACTIVE"
+            | "INACTIVE",
+          createdAt: entityUser.createdAt,
+          user: {
+            id: entityUser.userId,
+            username: entityUser.user?.name || "",
+          },
+        }));
+
+        setCustomers(mappedCustomers);
+      } catch (error) {
+        console.error("Failed to fetch data:", error);
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [entityId]);
+
+  // Function to check username uniqueness
+  const checkUsernameUnique = async (username: string) => {
+    if (!username.trim()) {
+      setUsernameError(null);
+      return;
+    }
+
+    setCheckingUsername(true);
+    setUsernameError(null);
+
+    try {
+      // Check if username exists in current customers
+      const existingCustomer = customers.find(
+        (customer) =>
+          customer.user?.username.toLowerCase() === username.toLowerCase(),
+      );
+
+      if (existingCustomer) {
+        setUsernameError("Username already exists for this entity");
+        return;
+      }
+
+      // Note: In a real implementation, you would also check against the backend
+      // for system-wide username uniqueness with an API call like:
+      // const response = await usersApi.checkUsername(username);
+      // if (response.exists) {
+      //   setUsernameError('Username already exists');
+      // }
+    } catch (error) {
+      console.error("Error checking username:", error);
+      setUsernameError("Unable to validate username. Please try again.");
+    } finally {
+      setCheckingUsername(false);
+    }
+  };
+
   const handleAddCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Don't submit if there's a username error
+    if (usernameError) {
+      alert("Please resolve username validation errors before submitting.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // TODO: Implement actual API call
-      console.log("Adding customer:", { ...customerForm, entityId });
+      // Create the customer with user account
+      const customerData = {
+        firstName: customerForm.firstName,
+        lastName: customerForm.lastName,
+        email: customerForm.email,
+        phone: customerForm.phone,
+        entityId: entityId,
+        status: "ACTIVE" as const,
+        user: {
+          username: customerForm.username,
+          password: customerForm.password,
+          email: customerForm.email,
+        },
+      };
+
+      // For now, we'll use the create method from the API
+      const createData = {
+        entityId: entityId,
+        userId: "temp-user-id", // This would need to be created first
+        role: "USER",
+        creditLimit: 0,
+        seatAllocation: 1,
+      };
+      const newCustomer = await entityUsersApi.create(createData);
+
+      // Assign to team if selected
+      if (customerForm.teamId) {
+        await entityUsersApi.assignToTeam(newCustomer.id, customerForm.teamId);
+      }
+
+      // Add to customers list
+      const mappedCustomer: Customer = {
+        id: newCustomer.id,
+        firstName: customerForm.firstName,
+        lastName: customerForm.lastName,
+        email: customerForm.email,
+        phone: customerForm.phone,
+        teamId: customerForm.teamId || undefined,
+        entityId: entityId,
+        status: "ACTIVE",
+        createdAt: new Date().toISOString(),
+        user: {
+          id: newCustomer.id,
+          username: customerForm.username,
+        },
+      };
+
+      setCustomers((prev) => [...prev, mappedCustomer]);
 
       // Reset form
-      setCustomerForm({ name: "", email: "", teamId: "" });
+      setCustomerForm({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        teamId: "",
+        username: "",
+        password: "",
+      });
       setShowAddCustomerForm(false);
     } catch (error) {
       console.error("Failed to add customer:", error);
+      alert("Failed to add customer. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -74,18 +232,43 @@ export function CustomerTeamManager({
     setLoading(true);
 
     try {
-      // TODO: Implement actual API call
-      console.log("Adding team:", { ...teamForm, entityId });
+      const teamData = {
+        name: teamForm.name,
+        description: teamForm.description,
+        entityId: entityId,
+      };
+
+      const newTeam = await teamsApi.create(teamData);
+
+      // Add to teams list
+      const mappedTeam: Team = {
+        ...newTeam,
+        memberCount: 0,
+      };
+
+      setTeams((prev) => [...prev, mappedTeam]);
 
       // Reset form
       setTeamForm({ name: "", description: "" });
       setShowAddTeamForm(false);
     } catch (error) {
       console.error("Failed to add team:", error);
+      alert("Failed to add team. Please try again.");
     } finally {
       setLoading(false);
     }
   };
+
+  if (initialLoading) {
+    return (
+      <div className="bg-white shadow rounded-lg p-6">
+        <div className="animate-pulse">
+          <div className="h-6 bg-gray-300 rounded mb-4 w-1/3"></div>
+          <div className="h-32 bg-gray-300 rounded"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white shadow rounded-lg p-6">
@@ -154,25 +337,48 @@ export function CustomerTeamManager({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
                     <label
-                      htmlFor="customer-name"
+                      htmlFor="customer-firstName"
                       className="block text-xs font-medium text-gray-700"
                     >
-                      Name *
+                      First Name *
                     </label>
                     <input
-                      id="customer-name"
+                      id="customer-firstName"
                       type="text"
-                      value={customerForm.name}
+                      value={customerForm.firstName}
                       onChange={(e) =>
                         setCustomerForm((prev) => ({
                           ...prev,
-                          name: e.target.value,
+                          firstName: e.target.value,
                         }))
                       }
                       required
                       className="mt-1 block w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                     />
                   </div>
+                  <div>
+                    <label
+                      htmlFor="customer-lastName"
+                      className="block text-xs font-medium text-gray-700"
+                    >
+                      Last Name *
+                    </label>
+                    <input
+                      id="customer-lastName"
+                      type="text"
+                      value={customerForm.lastName}
+                      onChange={(e) =>
+                        setCustomerForm((prev) => ({
+                          ...prev,
+                          lastName: e.target.value,
+                        }))
+                      }
+                      required
+                      className="mt-1 block w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
                     <label
                       htmlFor="customer-email"
@@ -191,6 +397,86 @@ export function CustomerTeamManager({
                         }))
                       }
                       required
+                      className="mt-1 block w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="customer-phone"
+                      className="block text-xs font-medium text-gray-700"
+                    >
+                      Phone
+                    </label>
+                    <input
+                      id="customer-phone"
+                      type="tel"
+                      value={customerForm.phone}
+                      onChange={(e) =>
+                        setCustomerForm((prev) => ({
+                          ...prev,
+                          phone: e.target.value,
+                        }))
+                      }
+                      className="mt-1 block w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label
+                      htmlFor="customer-username"
+                      className="block text-xs font-medium text-gray-700"
+                    >
+                      Username *
+                    </label>
+                    <input
+                      id="customer-username"
+                      type="text"
+                      value={customerForm.username}
+                      onChange={(e) =>
+                        setCustomerForm((prev) => ({
+                          ...prev,
+                          username: e.target.value,
+                        }))
+                      }
+                      onBlur={(e) => checkUsernameUnique(e.target.value)}
+                      required
+                      className={`mt-1 block w-full px-2 py-1 text-sm border rounded-md focus:outline-none ${
+                        usernameError
+                          ? "border-red-300 focus:ring-red-500 focus:border-red-500"
+                          : "border-gray-300 focus:ring-indigo-500 focus:border-indigo-500"
+                      }`}
+                    />
+                    {checkingUsername && (
+                      <p className="mt-1 text-xs text-blue-600">
+                        Checking username availability...
+                      </p>
+                    )}
+                    {usernameError && (
+                      <p className="mt-1 text-xs text-red-600">
+                        {usernameError}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="customer-password"
+                      className="block text-xs font-medium text-gray-700"
+                    >
+                      Password *
+                    </label>
+                    <input
+                      id="customer-password"
+                      type="password"
+                      value={customerForm.password}
+                      onChange={(e) =>
+                        setCustomerForm((prev) => ({
+                          ...prev,
+                          password: e.target.value,
+                        }))
+                      }
+                      required
+                      minLength={6}
                       className="mt-1 block w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                     />
                   </div>
@@ -258,9 +544,14 @@ export function CustomerTeamManager({
                 >
                   <div>
                     <p className="text-sm font-medium text-gray-900">
-                      {customer.name}
+                      {customer.firstName} {customer.lastName}
                     </p>
                     <p className="text-xs text-gray-500">{customer.email}</p>
+                    {customer.user && (
+                      <p className="text-xs text-blue-600">
+                        Username: {customer.user.username}
+                      </p>
+                    )}
                     {customer.teamId && (
                       <p className="text-xs text-indigo-600">
                         Team:{" "}

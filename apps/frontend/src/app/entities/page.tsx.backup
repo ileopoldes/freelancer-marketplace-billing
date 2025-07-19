@@ -21,13 +21,13 @@ export default function EntitiesPage() {
         // Fetch both entities and organizations
         const [entitiesData, organizationsData] = await Promise.all([
           entitiesApi.getAll(),
-          organizationsApi.getAll(),
+          organizationsApi.getAll()
         ]);
-
+        
         setEntities(entitiesData);
         setOrganizations(organizationsData);
       } catch (error) {
-        console.error("Failed to fetch data:", error);
+        console.error('Failed to fetch data:', error);
       } finally {
         setLoading(false);
       }
@@ -39,43 +39,41 @@ export default function EntitiesPage() {
   const handleCreateEntity = async (data: CreateEntityRequest) => {
     try {
       const newEntity = await entitiesApi.create(data);
-      setEntities((prev) => [...prev, newEntity]);
+      setEntities(prev => [...prev, newEntity]);
       setShowForm(false);
     } catch (error) {
-      console.error("Failed to create entity:", error);
+      console.error('Failed to create entity:', error);
       throw error;
     }
   };
 
   const handleEditEntity = async (data: CreateEntityRequest) => {
     if (!editingEntity) return;
-
+    
     try {
       const updatedEntity = await entitiesApi.update(editingEntity.id, data);
-      setEntities((prev) =>
-        prev.map((entity) =>
-          entity.id === editingEntity.id ? updatedEntity : entity,
-        ),
-      );
+      setEntities(prev => prev.map(entity => 
+        entity.id === editingEntity.id ? updatedEntity : entity
+      ));
       setEditingEntity(null);
       setShowForm(false);
     } catch (error) {
-      console.error("Failed to update entity:", error);
+      console.error('Failed to update entity:', error);
       throw error;
     }
   };
 
   const handleDeleteEntity = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this entity?")) {
+    if (!confirm('Are you sure you want to delete this entity?')) {
       return;
     }
-
+    
     try {
       await entitiesApi.delete(id);
-      setEntities((prev) => prev.filter((entity) => entity.id !== id));
+      setEntities(prev => prev.filter(entity => entity.id !== id));
     } catch (error) {
-      console.error("Failed to delete entity:", error);
-      alert("Failed to delete entity. Please try again.");
+      console.error('Failed to delete entity:', error);
+      alert('Failed to delete entity. Please try again.');
     }
   };
 
@@ -201,7 +199,7 @@ export default function EntitiesPage() {
           <EntityList
             entities={filteredEntities}
             organizations={organizations}
-            onEdit={(entity) => {
+            onEdit={(entity) =e {
               setEditingEntity(entity);
               setShowForm(true);
             }}

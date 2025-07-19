@@ -1,14 +1,18 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import {
+  creditsApi,
+  CreditBalance,
+  AddCreditsRequest,
+} from "@/lib/api/credits";
+import { organizationsApi } from "@/lib/api/organizations";
+import { entitiesApi } from "@/lib/api/entities";
 
-interface CreditBalance {
-  id: string;
+interface CreditBalanceWithMeta extends CreditBalance {
   entityType: "organization" | "entity" | "customer";
-  entityId: string;
   entityName: string;
   balance: number;
-  lastUpdated: string;
 }
 
 interface AddCreditsForm {
@@ -18,8 +22,15 @@ interface AddCreditsForm {
   description: string;
 }
 
+interface EntityOption {
+  id: string;
+  name: string;
+}
+
 export function Credits() {
-  const [creditBalances, setCreditBalances] = useState<CreditBalance[]>([]);
+  const [creditBalances, setCreditBalances] = useState<CreditBalanceWithMeta[]>(
+    [],
+  );
   const [showAddForm, setShowAddForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [addingCredits, setAddingCredits] = useState(false);
@@ -28,15 +39,52 @@ export function Credits() {
   >("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [addForm, setAddForm] = useState<AddCreditsForm>({
-    entityType: "organization",
+    entityType: "entity",
     entityId: "",
     amount: 0,
     description: "",
   });
+  const [entityOptions, setEntityOptions] = useState<EntityOption[]>([]);
 
   useEffect(() => {
-    // TODO: Implement actual API calls to fetch credit balances
-    setLoading(false);
+    const fetchCreditBalances = async () => {
+      try {
+        const balances = await creditsApi.getAllBalances();
+        // Transform balances to include entityType and entityName based on entity data
+        const balancesWithMeta: CreditBalanceWithMeta[] = await Promise.all(
+          balances.map(async (balance) => {
+            try {
+              // For now, treat all as entities since that's what we have in the API
+              const entity = await entitiesApi.getById(balance.entityId);
+              return {
+                ...balance,
+                entityType: "entity" as const,
+                entityName: entity.name,
+                balance: balance.totalCredits - balance.usedCredits,
+              };
+            } catch (error) {
+              console.warn(
+                `Could not fetch entity details for ${balance.entityId}:`,
+                error,
+              );
+              return {
+                ...balance,
+                entityType: "entity" as const,
+                entityName: `Entity ${balance.entityId}`,
+                balance: balance.totalCredits - balance.usedCredits,
+              };
+            }
+          }),
+        );
+        setCreditBalances(balancesWithMeta);
+      } catch (error) {
+        console.error("Failed to fetch credit balances:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCreditBalances();
   }, []);
 
   const handleAddCredits = async (e: React.FormEvent) => {
@@ -44,12 +92,52 @@ export function Credits() {
     setAddingCredits(true);
 
     try {
-      // TODO: Implement actual API call to add credits
-      console.log("Adding credits:", addForm);
+      const addCreditsData: AddCreditsRequest = {
+        entityId: addForm.entityId,
+        amount: addForm.amount,
+        description: addForm.description,
+        type: "MANUAL",
+      };
+
+      const updatedBalance = await creditsApi.addCredits(addCreditsData);
+
+      // Update the credit balances list
+      setCreditBalances((prev) => {
+        const existingIndex = prev.findIndex(
+          (b) => b.entityId === addForm.entityId,
+        );
+        if (existingIndex >= 0) {
+          // Update existing balance
+          const updated = [...prev];
+          updated[existingIndex] = {
+            ...updated[existingIndex],
+            totalCredits: updatedBalance.totalCredits,
+            usedCredits: updatedBalance.usedCredits,
+            balance: updatedBalance.totalCredits - updatedBalance.usedCredits,
+            updatedAt: updatedBalance.updatedAt,
+          };
+          return updated;
+        } else {
+          // Add new balance entry
+          const entityOption = entityOptions.find(
+            (e) => e.id === addForm.entityId,
+          );
+          return [
+            ...prev,
+            {
+              ...updatedBalance,
+              entityType: addForm.entityType,
+              entityName: entityOption?.name || `Entity ${addForm.entityId}`,
+              balance: updatedBalance.totalCredits - updatedBalance.usedCredits,
+              updatedAt: updatedBalance.updatedAt,
+            },
+          ];
+        }
+      });
 
       // Reset form
       setAddForm({
-        entityType: "organization",
+        entityType: "entity",
         entityId: "",
         amount: 0,
         description: "",
@@ -57,10 +145,36 @@ export function Credits() {
       setShowAddForm(false);
     } catch (error) {
       console.error("Failed to add credits:", error);
+      alert("Failed to add credits. Please try again.");
     } finally {
       setAddingCredits(false);
     }
   };
+
+  // Fetch entity options when form is shown or entity type changes
+  useEffect(() => {
+    if (showAddForm && addForm.entityType === "entity") {
+      const fetchEntities = async () => {
+        try {
+          const entities = await entitiesApi.getAll();
+          setEntityOptions(entities.map((e) => ({ id: e.id, name: e.name })));
+        } catch (error) {
+          console.error("Failed to fetch entities:", error);
+        }
+      };
+      fetchEntities();
+    } else if (showAddForm && addForm.entityType === "organization") {
+      const fetchOrganizations = async () => {
+        try {
+          const orgs = await organizationsApi.getAll();
+          setEntityOptions(orgs.map((o) => ({ id: o.id, name: o.name })));
+        } catch (error) {
+          console.error("Failed to fetch organizations:", error);
+        }
+      };
+      fetchOrganizations();
+    }
+  }, [showAddForm, addForm.entityType]);
 
   const filteredBalances = creditBalances.filter((balance) => {
     const matchesType =
@@ -216,7 +330,11 @@ export function Credits() {
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               >
                 <option value="">Select {addForm.entityType}...</option>
-                {/* TODO: Populate with actual data based on entityType */}
+                {entityOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.name}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -356,7 +474,7 @@ export function Credits() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(balance.lastUpdated).toLocaleDateString()}
+                      {new Date(balance.updatedAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button className="text-indigo-600 hover:text-indigo-900">

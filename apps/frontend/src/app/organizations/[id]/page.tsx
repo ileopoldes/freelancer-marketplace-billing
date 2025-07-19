@@ -131,6 +131,7 @@ export default function OrganizationDetailPage({
         {showEntityForm && (
           <div className="mb-8">
             <EntityForm
+              preselectedOrganizationId={params.id}
               onSubmit={handleCreateEntity}
               onCancel={() => setShowEntityForm(false)}
             />
@@ -149,6 +150,7 @@ export default function OrganizationDetailPage({
 
         <EntityList
           entities={entities}
+          organizations={[organization]}
           onEdit={setEditingEntity}
           onDelete={handleDeleteEntity}
         />

@@ -1,14 +1,25 @@
 "use client";
 
 import { Entity } from "@/lib/api/entities";
+import { Organization } from "@/lib/api/organizations";
 
 interface EntityListProps {
   entities: Entity[];
+  organizations: Organization[];
   onEdit: (entity: Entity) => void;
   onDelete: (id: string) => void;
 }
 
-export function EntityList({ entities, onEdit, onDelete }: EntityListProps) {
+export function EntityList({
+  entities,
+  organizations,
+  onEdit,
+  onDelete,
+}: EntityListProps) {
+  const getOrganizationName = (orgId: string) => {
+    const org = organizations.find((o) => o.id === orgId);
+    return org?.name || "Unknown Organization";
+  };
   if (entities.length === 0) {
     return (
       <div className="text-center py-8">
@@ -24,6 +35,9 @@ export function EntityList({ entities, onEdit, onDelete }: EntityListProps) {
           <tr>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Name
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Organization
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Description
@@ -45,6 +59,11 @@ export function EntityList({ entities, onEdit, onDelete }: EntityListProps) {
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="text-sm font-medium text-gray-900">
                   {entity.name}
+                </div>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="text-sm text-gray-900">
+                  {getOrganizationName(entity.organizationId)}
                 </div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap">

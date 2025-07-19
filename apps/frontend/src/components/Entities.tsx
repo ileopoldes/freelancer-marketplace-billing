@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { EntityForm } from "./EntityForm";
 import { EntityList } from "./EntityList";
-import { Entity, CreateEntityRequest } from "@/lib/api/entities";
+import { Entity, CreateEntityRequest, entitiesApi } from "@/lib/api/entities";
 import { Organization, organizationsApi } from "@/lib/api/organizations";
 
 export function Entities() {
@@ -18,9 +18,14 @@ export function Entities() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // TODO: Implement actual API calls
-        const orgs = await organizationsApi.getAll();
-        setOrganizations(orgs);
+        // Fetch both entities and organizations
+        const [entitiesData, organizationsData] = await Promise.all([
+          entitiesApi.getAll(),
+          organizationsApi.getAll(),
+        ]);
+
+        setEntities(entitiesData);
+        setOrganizations(organizationsData);
       } catch (error) {
         console.error("Failed to fetch data:", error);
       } finally {
@@ -32,21 +37,46 @@ export function Entities() {
   }, []);
 
   const handleCreateEntity = async (data: CreateEntityRequest) => {
-    // TODO: Implement actual API call
-    console.log("Creating entity:", data);
-    setShowForm(false);
+    try {
+      const newEntity = await entitiesApi.create(data);
+      setEntities((prev) => [...prev, newEntity]);
+      setShowForm(false);
+    } catch (error) {
+      console.error("Failed to create entity:", error);
+      throw error;
+    }
   };
 
   const handleEditEntity = async (data: CreateEntityRequest) => {
-    // TODO: Implement actual API call
-    console.log("Updating entity:", data);
-    setEditingEntity(null);
-    setShowForm(false);
+    if (!editingEntity) return;
+
+    try {
+      const updatedEntity = await entitiesApi.update(editingEntity.id, data);
+      setEntities((prev) =>
+        prev.map((entity) =>
+          entity.id === editingEntity.id ? updatedEntity : entity,
+        ),
+      );
+      setEditingEntity(null);
+      setShowForm(false);
+    } catch (error) {
+      console.error("Failed to update entity:", error);
+      throw error;
+    }
   };
 
   const handleDeleteEntity = async (id: string) => {
-    // TODO: Implement actual API call
-    console.log("Deleting entity:", id);
+    if (!confirm("Are you sure you want to delete this entity?")) {
+      return;
+    }
+
+    try {
+      await entitiesApi.delete(id);
+      setEntities((prev) => prev.filter((entity) => entity.id !== id));
+    } catch (error) {
+      console.error("Failed to delete entity:", error);
+      alert("Failed to delete entity. Please try again.");
+    }
   };
 
   const filteredEntities =
@@ -169,6 +199,7 @@ export function Entities() {
       {filteredEntities.length > 0 && (
         <EntityList
           entities={filteredEntities}
+          organizations={organizations}
           onEdit={(entity) => {
             setEditingEntity(entity);
             setShowForm(true);

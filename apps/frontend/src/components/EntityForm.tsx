@@ -3,19 +3,26 @@
 import { useState, useEffect } from "react";
 import { Entity, CreateEntityRequest } from "@/lib/api/entities";
 import { Organization, organizationsApi } from "@/lib/api/organizations";
+import { BillingModel } from "@/lib/enums";
 
 interface EntityFormProps {
   entity?: Entity;
   onSubmit: (data: CreateEntityRequest) => Promise<void>;
   onCancel: () => void;
+  preselectedOrganizationId?: string; // When creating from organization page
 }
 
-export function EntityForm({ entity, onSubmit, onCancel }: EntityFormProps) {
+export function EntityForm({
+  entity,
+  onSubmit,
+  onCancel,
+  preselectedOrganizationId,
+}: EntityFormProps) {
   const [formData, setFormData] = useState({
     name: entity?.name || "",
     description: entity?.description || "",
     billingModel: entity?.billingModel || "SEAT_BASED",
-    organizationId: entity?.organizationId || "",
+    organizationId: entity?.organizationId || preselectedOrganizationId || "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +35,11 @@ export function EntityForm({ entity, onSubmit, onCancel }: EntityFormProps) {
     setError(null);
 
     try {
-      await onSubmit(formData);
+      const submitData: CreateEntityRequest = {
+        ...formData,
+        billingModel: formData.billingModel as BillingModel,
+      };
+      await onSubmit(submitData);
     } catch (err) {
       setError("Failed to save entity");
       console.error("Error saving entity:", err);
@@ -122,7 +133,9 @@ export function EntityForm({ entity, onSubmit, onCancel }: EntityFormProps) {
             value={formData.organizationId}
             onChange={handleChange}
             required
-            disabled={loadingOrganizations}
+            disabled={
+              loadingOrganizations || !!entity || !!preselectedOrganizationId
+            }
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
           >
             <option value="">Select an organization...</option>
@@ -135,6 +148,13 @@ export function EntityForm({ entity, onSubmit, onCancel }: EntityFormProps) {
           {loadingOrganizations && (
             <p className="mt-1 text-sm text-gray-500">
               Loading organizations...
+            </p>
+          )}
+          {(!!entity || !!preselectedOrganizationId) && (
+            <p className="mt-1 text-sm text-gray-500">
+              {entity
+                ? "Organization cannot be changed when editing"
+                : "Organization is pre-selected"}
             </p>
           )}
         </div>
