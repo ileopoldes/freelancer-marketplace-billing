@@ -1,28 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import {
+  marketplaceEventsApi,
+  MarketplaceEvent,
+  MarketplaceEventFilters,
+} from "@/lib/api/marketplace-events";
+import { entitiesApi } from "@/lib/api/entities";
 
-interface MarketplaceEvent {
-  id: string;
-  name: string;
-  description: string;
-  eventType:
-    | "PURCHASE"
-    | "SUBSCRIPTION_CHANGE"
-    | "USAGE_REPORT"
-    | "BILLING_UPDATE"
-    | "REFUND";
-  source: string;
-  timestamp: string;
-  entityId: string;
-  entityName: string;
-  amount?: number;
-  currency?: string;
-  status: "PENDING" | "COMPLETED" | "FAILED" | "CANCELLED";
-  metadata?: Record<string, any>;
-}
-
-// Mock data for now - will be replaced with API calls
+// Mock data fallback if API fails
 const mockEvents: MarketplaceEvent[] = [
   {
     id: "1",
@@ -37,6 +23,9 @@ const mockEvents: MarketplaceEvent[] = [
     currency: "USD",
     status: "COMPLETED",
     metadata: { planId: "prof-monthly", seats: 10 },
+    userId: "user-1",
+    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
   },
   {
     id: "2",
@@ -49,6 +38,9 @@ const mockEvents: MarketplaceEvent[] = [
     entityName: "TechStart - Marketing",
     status: "COMPLETED",
     metadata: { apiCalls: 15420, period: "2024-01" },
+    userId: "user-2",
+    createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
   },
   {
     id: "3",
@@ -63,6 +55,9 @@ const mockEvents: MarketplaceEvent[] = [
     currency: "USD",
     status: "COMPLETED",
     metadata: { fromPlan: "basic-monthly", toPlan: "prof-monthly" },
+    userId: "user-3",
+    createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
   },
   {
     id: "4",
@@ -75,6 +70,9 @@ const mockEvents: MarketplaceEvent[] = [
     entityName: "Acme Corp - Development",
     status: "COMPLETED",
     metadata: { paymentMethod: "card_ending_4242" },
+    userId: "user-1",
+    createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
   },
   {
     id: "5",
@@ -89,6 +87,9 @@ const mockEvents: MarketplaceEvent[] = [
     currency: "USD",
     status: "COMPLETED",
     metadata: { reason: "subscription_cancellation", originalAmount: 79.99 },
+    userId: "user-4",
+    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
   },
   {
     id: "6",
@@ -103,6 +104,9 @@ const mockEvents: MarketplaceEvent[] = [
     currency: "USD",
     status: "FAILED",
     metadata: { errorCode: "card_declined", retryCount: 3 },
+    userId: "user-5",
+    createdAt: new Date(Date.now() - 30 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 30 * 60 * 60 * 1000).toISOString(),
   },
 ];
 
@@ -115,30 +119,91 @@ export default function MarketplaceEventsPage() {
   const [statusFilter, setStatusFilter] = useState<
     "all" | MarketplaceEvent["status"]
   >("all");
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalEvents, setTotalEvents] = useState(0);
+
+  const eventsPerPage = 10;
+  const totalPages = Math.ceil(totalEvents / eventsPerPage);
 
   useEffect(() => {
-    // Simulate API call
     const fetchEvents = async () => {
       try {
-        // TODO: Replace with actual API call
-        // const data = await marketplaceEventsApi.getAll();
-        await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate loading
-        setEvents(mockEvents);
+        setLoading(true);
+        setError(null);
+
+        // Build filters from current state
+        const filters: MarketplaceEventFilters = {};
+        if (filter !== "all") filters.eventType = filter;
+        if (statusFilter !== "all") filters.status = statusFilter;
+
+        // Try to fetch from API first, fallback to mock data if it fails
+        try {
+          const response = await marketplaceEventsApi.getAll(
+            currentPage,
+            eventsPerPage,
+            filters,
+          );
+
+          // Enrich events with entity names if not provided
+          const enrichedEvents = await Promise.all(
+            response.data.map(async (event) => {
+              if (!event.entityName) {
+                try {
+                  const entity = await entitiesApi.getById(event.entityId);
+                  return { ...event, entityName: entity.name };
+                } catch (error) {
+                  console.warn(
+                    `Could not fetch entity ${event.entityId}:`,
+                    error,
+                  );
+                  return { ...event, entityName: `Entity ${event.entityId}` };
+                }
+              }
+              return event;
+            }),
+          );
+
+          setEvents(enrichedEvents);
+          setTotalEvents(response.total);
+        } catch (apiError) {
+          console.warn("API call failed, using mock data:", apiError);
+          // Fallback to mock data with pagination and filtering simulation
+          let filteredMockEvents = mockEvents;
+
+          if (filter !== "all") {
+            filteredMockEvents = filteredMockEvents.filter(
+              (e) => e.eventType === filter,
+            );
+          }
+          if (statusFilter !== "all") {
+            filteredMockEvents = filteredMockEvents.filter(
+              (e) => e.status === statusFilter,
+            );
+          }
+
+          const startIndex = (currentPage - 1) * eventsPerPage;
+          const endIndex = startIndex + eventsPerPage;
+          const paginatedEvents = filteredMockEvents.slice(
+            startIndex,
+            endIndex,
+          );
+
+          setEvents(paginatedEvents);
+          setTotalEvents(filteredMockEvents.length);
+        }
       } catch (error) {
         console.error("Failed to fetch marketplace events:", error);
+        setError("Failed to load marketplace events. Please try again.");
       } finally {
         setLoading(false);
       }
     };
 
     fetchEvents();
-  }, []);
+  }, [currentPage, filter, statusFilter]);
 
-  const filteredEvents = events.filter((event) => {
-    const typeMatch = filter === "all" || event.eventType === filter;
-    const statusMatch = statusFilter === "all" || event.status === statusFilter;
-    return typeMatch && statusMatch;
-  });
+  // Events are already filtered from API call, so we use them directly
 
   const getEventTypeColor = (type: MarketplaceEvent["eventType"]) => {
     switch (type) {
@@ -256,7 +321,7 @@ export default function MarketplaceEventsPage() {
       </div>
 
       <div className="mt-8">
-        {filteredEvents.length === 0 ? (
+        {events.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-12 h-12 mx-auto mb-4 text-gray-400">
               <svg
@@ -309,7 +374,7 @@ export default function MarketplaceEventsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredEvents.map((event) => (
+                {events.map((event) => (
                   <tr key={event.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">

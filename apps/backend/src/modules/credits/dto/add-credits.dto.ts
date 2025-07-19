@@ -24,9 +24,9 @@ export class AddCreditsDto {
   @Min(1)
   amount: number;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  description: string;
+  description?: string;
 
   @IsOptional()
   @IsEnum(CreditType)

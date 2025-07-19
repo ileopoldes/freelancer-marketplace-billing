@@ -8,6 +8,8 @@ export interface User {
   role: UserRole;
   organizationId?: string;
   entityId?: string;
+  organizationName?: string; // Populated on frontend
+  entityName?: string; // Populated on frontend
   status: "ACTIVE" | "INACTIVE";
   createdAt: string;
 }

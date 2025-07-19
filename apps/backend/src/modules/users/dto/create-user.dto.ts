@@ -45,10 +45,10 @@ export class CreateUserDto {
   role: UserRole;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   organizationId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   entityId?: string;
 }

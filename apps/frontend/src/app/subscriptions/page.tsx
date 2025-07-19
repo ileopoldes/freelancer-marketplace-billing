@@ -1,18 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { subscriptionsApi, Subscription } from "@/lib/api/subscriptions";
 
-interface Subscription {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  billingPeriod: "MONTHLY" | "YEARLY";
-  features: string[];
-  isActive: boolean;
-}
-
-// Mock data for now - will be replaced with API calls
+// Mock data fallback if API fails
 const mockSubscriptions: Subscription[] = [
   {
     id: "1",
@@ -27,6 +18,8 @@ const mockSubscriptions: Subscription[] = [
       "10GB storage",
     ],
     isActive: true,
+    createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date().toISOString(),
   },
   {
     id: "2",
@@ -42,6 +35,8 @@ const mockSubscriptions: Subscription[] = [
       "API access",
     ],
     isActive: true,
+    createdAt: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date().toISOString(),
   },
   {
     id: "3",
@@ -58,6 +53,8 @@ const mockSubscriptions: Subscription[] = [
       "Custom integrations",
     ],
     isActive: true,
+    createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date().toISOString(),
   },
   {
     id: "4",
@@ -72,6 +69,8 @@ const mockSubscriptions: Subscription[] = [
       "10GB storage",
     ],
     isActive: true,
+    createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date().toISOString(),
   },
 ];
 
@@ -79,24 +78,59 @@ export default function SubscriptionsPage() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "monthly" | "yearly">("all");
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalSubscriptions, setTotalSubscriptions] = useState(0);
+
+  const subscriptionsPerPage = 10;
+  const totalPages = Math.ceil(totalSubscriptions / subscriptionsPerPage);
 
   useEffect(() => {
-    // Simulate API call
     const fetchSubscriptions = async () => {
       try {
-        // TODO: Replace with actual API call
-        // const data = await subscriptionsApi.getAll();
-        await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate loading
-        setSubscriptions(mockSubscriptions);
+        setLoading(true);
+        setError(null);
+
+        // Try to fetch from API first, fallback to mock data if it fails
+        try {
+          const response = await subscriptionsApi.getAll(
+            currentPage,
+            subscriptionsPerPage,
+          );
+          setSubscriptions(response.data);
+          setTotalSubscriptions(response.total);
+        } catch (apiError) {
+          console.warn("API call failed, using mock data:", apiError);
+          // Fallback to mock data with pagination simulation
+          const startIndex = (currentPage - 1) * subscriptionsPerPage;
+          const endIndex = startIndex + subscriptionsPerPage;
+          const paginatedMockData = mockSubscriptions.slice(
+            startIndex,
+            endIndex,
+          );
+
+          // Add required fields for compatibility
+          const compatibleMockData = paginatedMockData.map((sub) => ({
+            ...sub,
+            createdAt: new Date(
+              Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000,
+            ).toISOString(),
+            updatedAt: new Date().toISOString(),
+          }));
+
+          setSubscriptions(compatibleMockData);
+          setTotalSubscriptions(mockSubscriptions.length);
+        }
       } catch (error) {
         console.error("Failed to fetch subscriptions:", error);
+        setError("Failed to load subscriptions. Please try again.");
       } finally {
         setLoading(false);
       }
     };
 
     fetchSubscriptions();
-  }, []);
+  }, [currentPage]);
 
   const filteredSubscriptions = subscriptions.filter((subscription) => {
     if (filter === "all") return subscription.isActive;

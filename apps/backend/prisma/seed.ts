@@ -50,7 +50,14 @@ async function seedEntities(organizations) {
 async function seedUsers() {
   console.log("👤 Seeding users...");
 
-  const users = [];
+  const users = [
+    {
+      id: "system",
+      name: "System",
+      email: "system@marketplace.com",
+      globalRole: "ADMIN",
+    },
+  ];
   const roles = ["ADMIN", "USER", "FREELANCER", "TEAM_LEAD"];
 
   for (let i = 0; i < DEMO_USERS_COUNT; i++) {
