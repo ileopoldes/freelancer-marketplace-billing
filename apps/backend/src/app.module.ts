@@ -27,6 +27,7 @@ import { BillingAccessGuard } from "./guards/billing-access.guard";
 
 // Events module
 import { EventsModule } from "./common/events/events.module";
+import { UsersModule } from "./modules/users/users.module";
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { EventsModule } from "./common/events/events.module";
     CreditsModule,
     BillingMiddlewareModule,
     EventsModule,
+    UsersModule,
     // SubscriptionsModule,
     // ContractsModule,
     // PermissionsModule,

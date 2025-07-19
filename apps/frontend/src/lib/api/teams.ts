@@ -89,6 +89,20 @@ export const teamsApi = {
   delete: async (id: string): Promise<void> => {
     await apiClient.delete(`/api/teams/${id}`);
   },
+
+  // Assign user to team
+  assignUserToTeam: async (teamId: string, userId: string): Promise<Team> => {
+    return await apiClient.patch(`/api/teams/${teamId}/assign-user`, {
+      userId,
+    });
+  },
+
+  // Remove user from team
+  removeUserFromTeam: async (teamId: string, userId: string): Promise<Team> => {
+    return await apiClient.patch(`/api/teams/${teamId}/remove-user`, {
+      userId,
+    });
+  },
 };
 
 export const entityUsersApi = {
