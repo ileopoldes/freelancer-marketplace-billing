@@ -34,6 +34,7 @@ export interface UpdateOrganizationRequest {
   name?: string;
   domain?: string;
   billingEmail?: string;
+  billingModel?: "PAY_AS_YOU_GO" | "PREPAID_CREDITS" | "SEAT_BASED";
 }
 
 export const organizationsApi = {

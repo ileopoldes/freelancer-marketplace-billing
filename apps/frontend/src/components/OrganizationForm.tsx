@@ -22,7 +22,8 @@ export function OrganizationForm({
     domain: organization?.domain || "",
     billingEmail: organization?.billingEmail || "",
     description: "",
-    billingModel: "SEAT_BASED" as const,
+    billingModel:
+      (organization as any)?.billingModel || ("SEAT_BASED" as const),
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -115,27 +116,30 @@ export function OrganizationForm({
           />
         </div>
 
-        {!organization && (
-          <div>
-            <label
-              htmlFor="billingModel"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Billing Model *
-            </label>
-            <select
-              id="billingModel"
-              name="billingModel"
-              value={formData.billingModel}
-              onChange={handleChange}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-            >
-              <option value="SEAT_BASED">Seat-Based Subscription</option>
-              <option value="PAY_AS_YOU_GO">Pay-As-You-Go</option>
-              <option value="PREPAID_CREDITS">Prepaid Credits</option>
-            </select>
-          </div>
-        )}
+        <div>
+          <label
+            htmlFor="billingModel"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Billing Model *
+          </label>
+          <select
+            id="billingModel"
+            name="billingModel"
+            value={formData.billingModel}
+            onChange={handleChange}
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+          >
+            <option value="SEAT_BASED">Seat-Based Subscription</option>
+            <option value="PAY_AS_YOU_GO">Pay-As-You-Go</option>
+            <option value="PREPAID_CREDITS">Prepaid Credits</option>
+          </select>
+          {organization && (
+            <p className="mt-1 text-sm text-gray-500">
+              You can now edit the billing model for existing organizations.
+            </p>
+          )}
+        </div>
 
         <div className="flex justify-end space-x-3">
           <button

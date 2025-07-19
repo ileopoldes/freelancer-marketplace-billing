@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Entity, CreateEntityRequest } from "@/lib/api/entities";
+import { Organization, organizationsApi } from "@/lib/api/organizations";
 
 interface EntityFormProps {
   entity?: Entity;
@@ -18,6 +19,8 @@ export function EntityForm({ entity, onSubmit, onCancel }: EntityFormProps) {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [loadingOrganizations, setLoadingOrganizations] = useState(true);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,6 +36,21 @@ export function EntityForm({ entity, onSubmit, onCancel }: EntityFormProps) {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const fetchOrganizations = async () => {
+      try {
+        const orgs = await organizationsApi.getAll();
+        setOrganizations(orgs);
+      } catch (error) {
+        console.error("Failed to fetch organizations:", error);
+      } finally {
+        setLoadingOrganizations(false);
+      }
+    };
+
+    fetchOrganizations();
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -89,6 +107,36 @@ export function EntityForm({ entity, onSubmit, onCancel }: EntityFormProps) {
             rows={3}
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
           />
+        </div>
+
+        <div>
+          <label
+            htmlFor="organizationId"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Organization *
+          </label>
+          <select
+            id="organizationId"
+            name="organizationId"
+            value={formData.organizationId}
+            onChange={handleChange}
+            required
+            disabled={loadingOrganizations}
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
+          >
+            <option value="">Select an organization...</option>
+            {organizations.map((org) => (
+              <option key={org.id} value={org.id}>
+                {org.name}
+              </option>
+            ))}
+          </select>
+          {loadingOrganizations && (
+            <p className="mt-1 text-sm text-gray-500">
+              Loading organizations...
+            </p>
+          )}
         </div>
 
         <div>
