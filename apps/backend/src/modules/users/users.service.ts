@@ -27,7 +27,7 @@ export class UsersService {
     // Check if username or email already exist
     const existingUser = await this.prisma.user.findFirst({
       where: {
-        OR: [{ email }, { name: username }],
+        OR: [{ email }, { username }],
       },
     });
 
@@ -35,7 +35,7 @@ export class UsersService {
       if (existingUser.email === email) {
         throw new ConflictException(`User with email ${email} already exists`);
       }
-      if (existingUser.name === username) {
+      if (existingUser.username === username) {
         throw new ConflictException(`Username ${username} is already taken`);
       }
     }
@@ -46,7 +46,8 @@ export class UsersService {
     // Create the user
     const newUser = await this.prisma.user.create({
       data: {
-        name: username,
+        name: `${firstName} ${lastName}`,
+        username,
         email,
         password: hashedPassword,
         globalRole: role,
@@ -111,6 +112,22 @@ export class UsersService {
   }
 
   async findByUsername(username: string) {
-    return this.prisma.user.findFirst({ where: { name: username } });
+    return this.prisma.user.findFirst({ where: { username } });
+  }
+
+  async findByEmail(email: string) {
+    return this.prisma.user.findFirst({ where: { email } });
+  }
+
+  async findByEmailOrUsername(emailOrUsername: string) {
+    return this.prisma.user.findFirst({
+      where: {
+        OR: [{ email: emailOrUsername }, { username: emailOrUsername }],
+      },
+    });
+  }
+
+  async findById(id: string) {
+    return this.prisma.user.findUnique({ where: { id } });
   }
 }

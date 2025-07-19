@@ -1,5 +1,7 @@
 export interface User {
+  id: string;
   email: string;
+  username: string;
   role: string;
 }
 
@@ -11,11 +13,13 @@ export const getAuthToken = (): string | null => {
 export const getUserInfo = (): User | null => {
   if (typeof window === "undefined") return null;
 
+  const id = localStorage.getItem("userId");
   const email = localStorage.getItem("userEmail");
+  const username = localStorage.getItem("username");
   const role = localStorage.getItem("userRole");
 
-  if (email && role) {
-    return { email, role };
+  if (id && email && username && role) {
+    return { id, email, username, role };
   }
 
   return null;
@@ -31,6 +35,8 @@ export const logout = () => {
   localStorage.removeItem("authToken");
   localStorage.removeItem("userEmail");
   localStorage.removeItem("userRole");
+  localStorage.removeItem("userId");
+  localStorage.removeItem("username");
 
   // Redirect to login page
   window.location.href = "/login";

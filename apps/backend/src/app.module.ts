@@ -28,6 +28,8 @@ import { BillingAccessGuard } from "./guards/billing-access.guard";
 // Events module
 import { EventsModule } from "./common/events/events.module";
 import { UsersModule } from "./modules/users/users.module";
+import { AuthModule } from "./auth/auth.module";
+import { JwtAuthGuard } from "./auth/guards/auth.guard";
 
 @Module({
   imports: [
@@ -62,6 +64,7 @@ import { UsersModule } from "./modules/users/users.module";
     BillingMiddlewareModule,
     EventsModule,
     UsersModule,
+    AuthModule,
     // SubscriptionsModule,
     // ContractsModule,
     // PermissionsModule,
@@ -72,6 +75,10 @@ import { UsersModule } from "./modules/users/users.module";
     {
       provide: APP_FILTER,
       useClass: HttpExceptionFilter,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
     },
     {
       provide: APP_GUARD,

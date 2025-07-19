@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { createMoney, moneyToDecimalString } from "@marketplace/shared";
+import * as bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
 
@@ -50,23 +51,56 @@ async function seedEntities(organizations) {
 async function seedUsers() {
   console.log("👤 Seeding users...");
 
+  // Default password for all demo users
+  const defaultPassword = "demo123";
+  const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+
   const users = [
     {
       id: "system",
       name: "System",
+      username: "system",
       email: "system@marketplace.com",
+      password: hashedPassword,
       globalRole: "ADMIN",
     },
+    // Add some specific demo users with known credentials
+    {
+      name: "Admin User",
+      username: "admin",
+      email: "admin@example.com",
+      password: hashedPassword,
+      globalRole: "ADMIN",
+    },
+    {
+      name: "Regular User",
+      username: "user",
+      email: "user@example.com",
+      password: hashedPassword,
+      globalRole: "USER",
+    },
+    {
+      name: "Freelancer Demo",
+      username: "freelancer",
+      email: "freelancer@example.com",
+      password: hashedPassword,
+      globalRole: "FREELANCER",
+    },
   ];
+
   const roles = ["ADMIN", "USER", "FREELANCER", "TEAM_LEAD"];
 
   for (let i = 0; i < DEMO_USERS_COUNT; i++) {
     const firstName = randomChoice(firstNames);
     const lastName = randomChoice(lastNames);
     const email = generateEmail(firstName, lastName, "example.com");
+    const username = `${firstName.toLowerCase()}.${lastName.toLowerCase()}`;
+
     users.push({
       name: `${firstName} ${lastName}`,
+      username,
       email,
+      password: hashedPassword,
       globalRole: randomChoice(roles),
     });
   }

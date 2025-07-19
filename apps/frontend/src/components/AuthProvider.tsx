@@ -18,7 +18,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     const checkAuth = () => {
-      // Don't check auth on login page
+      // Don't check auth on login page - just set loading to false
       if (pathname === "/login") {
         setIsLoading(false);
         return;
@@ -47,8 +47,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isAuthenticated: !!user,
   };
 
-  // Show loading spinner while checking authentication
-  if (isLoading) {
+  // Show loading spinner only for protected pages while checking authentication
+  // Always show login page immediately
+  if (isLoading && pathname !== "/login") {
     return (
       <AuthContext.Provider value={contextValue}>
         <div className="min-h-screen flex items-center justify-center bg-gray-50">

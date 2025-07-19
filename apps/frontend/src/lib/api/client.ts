@@ -8,6 +8,22 @@ class ApiClient {
     this.baseUrl = baseUrl;
   }
 
+  private getAuthHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    // Add JWT token if available (only on client side)
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("authToken");
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+    }
+
+    return headers;
+  }
+
   async get(
     endpoint: string,
     options: { params?: Record<string, string> } = {},
@@ -22,9 +38,7 @@ class ApiClient {
 
     const response = await fetch(url.toString(), {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: this.getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -37,9 +51,7 @@ class ApiClient {
   async post(endpoint: string, data?: any) {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: this.getAuthHeaders(),
       body: data ? JSON.stringify(data) : undefined,
     });
 
@@ -53,9 +65,7 @@ class ApiClient {
   async patch(endpoint: string, data?: any) {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: this.getAuthHeaders(),
       body: data ? JSON.stringify(data) : undefined,
     });
 
@@ -69,9 +79,7 @@ class ApiClient {
   async delete(endpoint: string) {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: this.getAuthHeaders(),
     });
 
     if (!response.ok) {

@@ -62,6 +62,7 @@ model Team {
 
 model User {
   id         String   @id @default(cuid())
+  username   String   @unique
   email      String   @unique
   name       String
   password   String?

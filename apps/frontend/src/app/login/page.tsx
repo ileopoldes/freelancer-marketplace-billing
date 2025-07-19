@@ -2,9 +2,10 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { authApi } from "@/lib/api/auth";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
+  const [emailOrUsername, setEmailOrUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -16,31 +17,23 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      // Simulate authentication - replace with actual API call
-      await new Promise((resolve, reject) => {
-        setTimeout(() => {
-          if (email === "admin@example.com" && password === "admin123") {
-            // Store auth token in localStorage (in a real app, use more secure storage)
-            localStorage.setItem("authToken", "mock-jwt-token");
-            localStorage.setItem("userEmail", email);
-            localStorage.setItem("userRole", "admin");
-            resolve("success");
-          } else if (email && password) {
-            // Any other valid email/password combo for demo purposes
-            localStorage.setItem("authToken", "mock-jwt-token");
-            localStorage.setItem("userEmail", email);
-            localStorage.setItem("userRole", "user");
-            resolve("success");
-          } else {
-            reject("Invalid credentials");
-          }
-        }, 1000);
+      // Authenticate with real backend API
+      const response = await authApi.login({
+        emailOrUsername,
+        password,
       });
+
+      // Store auth token and user info in localStorage
+      localStorage.setItem("authToken", response.access_token);
+      localStorage.setItem("userEmail", response.user.email);
+      localStorage.setItem("userRole", response.user.role);
+      localStorage.setItem("userId", response.user.id);
+      localStorage.setItem("username", response.user.username);
 
       // Redirect to dashboard after successful login
       router.push("/");
-    } catch (error) {
-      setError("Invalid email or password");
+    } catch (error: any) {
+      setError(error?.message || "Invalid email/username or password");
     } finally {
       setLoading(false);
     }
@@ -75,19 +68,19 @@ export default function LoginPage() {
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
-              <label htmlFor="email-address" className="sr-only">
-                Email address
+              <label htmlFor="email-or-username" className="sr-only">
+                Email address or username
               </label>
               <input
-                id="email-address"
-                name="email"
-                type="email"
-                autoComplete="email"
+                id="email-or-username"
+                name="emailOrUsername"
+                type="text"
+                autoComplete="username"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={emailOrUsername}
+                onChange={(e) => setEmailOrUsername(e.target.value)}
                 className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
+                placeholder="Email address or username"
               />
             </div>
             <div>
@@ -169,11 +162,15 @@ export default function LoginPage() {
 
           <div className="text-center">
             <div className="text-sm text-gray-600">
-              <p className="mb-2">Demo credentials:</p>
+              <p className="mb-2">
+                Demo credentials (username or email / password):
+              </p>
               <p className="font-mono text-xs bg-gray-100 p-2 rounded">
-                <strong>Admin:</strong> admin@example.com / admin123
+                <strong>Admin:</strong> admin@example.com / demo123
                 <br />
-                <strong>User:</strong> user@example.com / user123
+                <strong>User:</strong> user@example.com / demo123
+                <br />
+                <strong>Freelancer:</strong> freelancer / demo123
               </p>
             </div>
           </div>
