@@ -4,8 +4,10 @@ import React, { useState, useEffect } from "react";
 import { UserForm } from "@/components/UserForm";
 import { UserRole } from "@/lib/enums";
 import { usersApi, User, CreateUserRequest } from "@/lib/api/users";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function CustomersPage() {
+  const auth = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddUserForm, setShowAddUserForm] = useState(false);
@@ -90,6 +92,28 @@ export default function CustomersPage() {
     setSelectedRole(role);
     setShowAddUserForm(true);
   };
+
+  // Simple redirect for freelancers - just show access denied
+  if (auth.user?.role === "freelancer") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+            Access Restricted
+          </h1>
+          <p className="text-gray-600 mb-4">
+            This page is not available for freelancer accounts.
+          </p>
+          <a
+            href="/"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md inline-block"
+          >
+            Go to Dashboard
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

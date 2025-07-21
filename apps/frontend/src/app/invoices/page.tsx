@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { apiClient } from '@/lib/api';
-import type { Invoice } from '@/lib/api';
+import { useState, useEffect } from "react";
+import { apiClient } from "@/lib/api/client";
+import type { Invoice } from "@/lib/api";
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -20,8 +20,8 @@ export default function InvoicesPage() {
       const data = await apiClient.getInvoices();
       setInvoices(data);
     } catch (err) {
-      setError('Failed to fetch invoices');
-      console.error('Error fetching invoices:', err);
+      setError("Failed to fetch invoices");
+      console.error("Error fetching invoices:", err);
     } finally {
       setLoading(false);
     }
@@ -52,7 +52,7 @@ export default function InvoicesPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold text-gray-900 mb-8">Invoices</h1>
-      
+
       {invoices.length === 0 ? (
         <div className="text-center py-8">
           <p className="text-gray-500">No invoices found.</p>
@@ -89,7 +89,7 @@ export default function InvoicesPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
-                      {invoice.customer?.name || 'Unknown'}
+                      {invoice.customer?.name || "Unknown"}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -98,13 +98,15 @@ export default function InvoicesPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      invoice.status === 'PAID' 
-                        ? 'bg-green-100 text-green-800'
-                        : invoice.status === 'PENDING'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}>
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        invoice.status === "PAID"
+                          ? "bg-green-100 text-green-800"
+                          : invoice.status === "PENDING"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-red-100 text-red-800"
+                      }`}
+                    >
                       {invoice.status}
                     </span>
                   </td>

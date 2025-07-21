@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { apiClient } from '@/lib/api';
-import type { BillingJob } from '@/lib/api';
+import { useState, useEffect } from "react";
+import { apiClient } from "@/lib/api/client";
+import type { BillingJob } from "@/lib/api";
 
 export default function BillingPage() {
   const [billingJobs, setBillingJobs] = useState<BillingJob[]>([]);
@@ -21,8 +21,8 @@ export default function BillingPage() {
       const data = await apiClient.getBillingJobs();
       setBillingJobs(data);
     } catch (err) {
-      setError('Failed to fetch billing jobs');
-      console.error('Error fetching billing jobs:', err);
+      setError("Failed to fetch billing jobs");
+      console.error("Error fetching billing jobs:", err);
     } finally {
       setLoading(false);
     }
@@ -35,8 +35,8 @@ export default function BillingPage() {
       // Refresh the billing jobs list
       fetchBillingJobs();
     } catch (err) {
-      setError('Failed to run billing');
-      console.error('Error running billing:', err);
+      setError("Failed to run billing");
+      console.error("Error running billing:", err);
     } finally {
       setRunningBilling(false);
     }
@@ -73,10 +73,10 @@ export default function BillingPage() {
           disabled={runningBilling}
           className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-md text-sm font-medium"
         >
-          {runningBilling ? 'Running...' : 'Run Billing'}
+          {runningBilling ? "Running..." : "Run Billing"}
         </button>
       </div>
-      
+
       {billingJobs.length === 0 ? (
         <div className="text-center py-8">
           <p className="text-gray-500">No billing jobs found.</p>
@@ -120,15 +120,17 @@ export default function BillingPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      job.status === 'COMPLETED' 
-                        ? 'bg-green-100 text-green-800'
-                        : job.status === 'RUNNING'
-                        ? 'bg-blue-100 text-blue-800'
-                        : job.status === 'PENDING'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}>
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        job.status === "COMPLETED"
+                          ? "bg-green-100 text-green-800"
+                          : job.status === "RUNNING"
+                            ? "bg-blue-100 text-blue-800"
+                            : job.status === "PENDING"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-red-100 text-red-800"
+                      }`}
+                    >
                       {job.status}
                     </span>
                   </td>
@@ -139,7 +141,7 @@ export default function BillingPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
-                      ${job.totalBilled || '0.00'}
+                      ${job.totalBilled || "0.00"}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

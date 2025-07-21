@@ -89,6 +89,53 @@ class ApiClient {
     // Return empty object for successful DELETE requests
     return {};
   }
+
+  // Extended API methods for specific endpoints
+
+  // Customer endpoints
+  async getCustomers() {
+    const data = await this.get("/api/customers");
+    return data.customers || [];
+  }
+
+  async getCustomer(id: string) {
+    return this.get(`/api/customers/${id}`);
+  }
+
+  // Invoice endpoints
+  async getInvoices() {
+    const data = await this.get("/api/invoices");
+    return data.invoices || [];
+  }
+
+  async getInvoice(id: string) {
+    return this.get(`/api/invoices/${id}`);
+  }
+
+  async getCustomerInvoices(customerId: string) {
+    const data = await this.get(`/api/customers/${customerId}/invoices`);
+    return data.invoices || [];
+  }
+
+  // Billing job endpoints
+  async runBilling(asOfDate?: string) {
+    const params = asOfDate ? `?asOf=${asOfDate}` : "";
+    return this.post(`/api/billing/run${params}`);
+  }
+
+  async getBillingJob(id: string) {
+    return this.get(`/api/billing/jobs/${id}`);
+  }
+
+  async getBillingJobs() {
+    const data = await this.get("/api/billing/jobs");
+    return data.jobs || [];
+  }
+
+  // Health check
+  async healthCheck() {
+    return this.get("/api/health");
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);

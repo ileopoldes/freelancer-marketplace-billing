@@ -46,3 +46,34 @@ export const isAdmin = (): boolean => {
   const user = getUserInfo();
   return user?.role === "admin";
 };
+
+export const isFreelancer = (): boolean => {
+  const user = getUserInfo();
+  return user?.role === "freelancer";
+};
+
+export const hasRole = (role: string): boolean => {
+  const user = getUserInfo();
+  return user?.role === role;
+};
+
+// Check if user can access a specific feature/tab
+export const canAccessFeature = (feature: string): boolean => {
+  const user = getUserInfo();
+  if (!user) return false;
+
+  // Freelancers can only access specific features
+  if (user.role === "freelancer") {
+    const allowedFeatures = [
+      "projects",
+      "dashboard",
+      "marketplace",
+      "subscriptions",
+      "invoices",
+    ];
+    return allowedFeatures.includes(feature.toLowerCase());
+  }
+
+  // Admin and regular users can access everything
+  return true;
+};

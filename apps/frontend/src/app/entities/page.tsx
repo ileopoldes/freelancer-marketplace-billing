@@ -5,8 +5,10 @@ import { EntityForm } from "@/components/EntityForm";
 import { EntityList } from "@/components/EntityList";
 import { Entity, CreateEntityRequest, entitiesApi } from "@/lib/api/entities";
 import { Organization, organizationsApi } from "@/lib/api/organizations";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function EntitiesPage() {
+  const auth = useAuth();
   const [entities, setEntities] = useState<Entity[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [selectedOrganization, setSelectedOrganization] =
@@ -85,6 +87,28 @@ export default function EntitiesPage() {
       : entities.filter(
           (entity) => entity.organizationId === selectedOrganization,
         );
+
+  // Simple redirect for freelancers - just show access denied
+  if (auth.user?.role === "freelancer") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+            Access Restricted
+          </h1>
+          <p className="text-gray-600 mb-4">
+            This page is not available for freelancer accounts.
+          </p>
+          <a
+            href="/"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md inline-block"
+          >
+            Go to Dashboard
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

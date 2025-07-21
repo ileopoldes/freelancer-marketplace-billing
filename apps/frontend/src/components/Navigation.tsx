@@ -15,13 +15,28 @@ export function Navigation() {
     return null;
   }
 
-  const navItems = [
-    { href: "/", label: "Dashboard" },
-    { href: "/organizations", label: "Organizations" },
-    { href: "/entities", label: "Entities" },
-    { href: "/customers", label: "Customers" },
-    { href: "/projects", label: "Projects" },
-  ];
+  // Define navigation items based on user role
+  const getNavItems = () => {
+    const allNavItems = [
+      { href: "/", label: "Dashboard" },
+      { href: "/organizations", label: "Organizations" },
+      { href: "/entities", label: "Entities" },
+      { href: "/customers", label: "Customers" },
+      { href: "/projects", label: "Projects" },
+    ];
+
+    // If user is a freelancer, only show Dashboard and Projects
+    if (auth.user?.role === "freelancer") {
+      return allNavItems.filter(
+        (item) => item.href === "/" || item.href === "/projects",
+      );
+    }
+
+    // For all other users (admin, user), show everything
+    return allNavItems;
+  };
+
+  const navItems = getNavItems();
 
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200">
@@ -55,6 +70,11 @@ export function Navigation() {
                   {auth.user.role === "admin" && (
                     <span className="ml-2 px-2 py-1 text-xs bg-indigo-100 text-indigo-700 rounded-full">
                       Admin
+                    </span>
+                  )}
+                  {auth.user.role === "freelancer" && (
+                    <span className="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-full">
+                      Freelancer
                     </span>
                   )}
                 </span>
